@@ -215,7 +215,8 @@
         div.textContent = opt;
         div.addEventListener('click', () => {
           if (!revealed && !submittedAnswer) {
-            lockAnswer(idx, question);
+            question._chosen = idx;
+            revealAnswer(question);
           }
         });
         optionsEl.appendChild(div);

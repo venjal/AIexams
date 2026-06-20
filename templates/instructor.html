@@ -191,7 +191,7 @@
       }
       liveStatusEl.textContent = 'Question pushed';
       currentPushedQuestion = qData.questions[0];
-      previewRevealed = false;
+      previewRevealed = true;
       renderQuestionPreview(currentPushedQuestion);
     }
 
@@ -224,11 +224,6 @@
         body: JSON.stringify({key: currentKey}),
       });
       liveStatusEl.textContent = 'Answer revealed';
-      // Now show the correct answer in the instructor preview
-      if (currentPushedQuestion) {
-        previewRevealed = true;
-        renderQuestionPreview(currentPushedQuestion);
-      }
     }
 
     async function nextQuestion() {
