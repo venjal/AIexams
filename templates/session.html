@@ -234,10 +234,12 @@
 
     async function pollQuestion() {
       try {
-        const res = await fetch(`/api/session/current-question?key=${encodeURIComponent(key)}`);
+        const res = await fetch(`/api/session/current-question?key=${encodeURIComponent(key)}&_t=${Date.now()}`, {
+          cache: 'no-store',
+        });
         const data = await res.json();
         if (!res.ok || !data.active) {
-          showWaiting();
+          window.location.href = '/';
           return;
         }
 

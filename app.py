@@ -1311,7 +1311,7 @@ def current_question():
     my_score = learner_answers.get("score", 0)
     my_total = learner_answers.get("total", 0)
 
-    return jsonify({
+    res = make_response(jsonify({
         "question": session.get("current_question"),
         "pushed_at": session.get("current_question_pushed_at"),
         "answer_revealed": session.get("answer_revealed", False),
@@ -1320,7 +1320,11 @@ def current_question():
         "mode": session.get("mode", "quiz"),
         "my_score": my_score,
         "my_total": my_total,
-    })
+    }))
+    res.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    res.headers["Pragma"] = "no-cache"
+    res.headers["Expires"] = "0"
+    return res
 
 
 @app.route("/api/session/status", methods=["GET"])
