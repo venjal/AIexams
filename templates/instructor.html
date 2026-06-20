@@ -44,7 +44,13 @@
         </div>
         <div>
           <h3>Settings</h3>
-          <label>Question count</label>
+          <label>Mode</label>
+          <select id="mode">
+            <option value="quiz">Quiz</option>
+            <option value="quiz-modules">Quiz by Module</option>
+            <option value="flashcards">Flashcards</option>
+          </select>
+          <label style="display:block; margin-top:10px;">Question count</label>
           <select id="questionCount">
             <option value="5">5</option>
             <option value="10">10</option>
@@ -111,6 +117,7 @@
 
     async function startSession() {
       const payload = {
+        mode: document.getElementById('mode').value,
         modules: selectedModuleIds(),
         question_count: Number(document.getElementById('questionCount').value),
         timer_seconds: Number(document.getElementById('timerSeconds').value),

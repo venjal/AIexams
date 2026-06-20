@@ -146,6 +146,18 @@
           return;
         }
 
+        // Check for mode and redirect if this is the first poll
+        if (data.mode && !currentQuestion) {
+          const modeRoutes = {
+            'quiz': '/quiz',
+            'quiz-modules': '/quiz-modules',
+            'flashcards': '/flashcards',
+          };
+          const route = modeRoutes[data.mode] || '/quiz';
+          window.location.href = `${route}?key=${encodeURIComponent(key)}`;
+          return;
+        }
+
         if (!data.question) {
           showWaiting();
           return;

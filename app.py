@@ -1102,6 +1102,7 @@ def start_session():
 
     state["live_sessions"][key] = {
         "active": True,
+        "mode": data.get("mode", "quiz"),
         "modules": modules,
         "question_count": int(data.get("question_count", 5)),
         "timer_seconds": int(data.get("timer_seconds", 60)),
@@ -1197,6 +1198,7 @@ def current_question():
         "answer_revealed": session.get("answer_revealed", False),
         "timer_seconds": session.get("timer_seconds", 60),
         "active": session.get("active", False),
+        "mode": session.get("mode", "quiz"),
     })
 
 
