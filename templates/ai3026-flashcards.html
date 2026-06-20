@@ -568,15 +568,34 @@
     <div class="footer-note">Created by venkat jalasutram</div>
 
     <script>
+        const isInstructor = {{ is_instructor | tojson }};
+        const flashcardSessionMode = {{ flashcard_session_mode | tojson }};
+        const enabledFlashcardModules = {{ flashcard_modules | tojson }};
+
         let modules = [];
         let flashcards = [];
         let currentModuleId = null;
         let currentCardIndex = 0;
         let isFlipped = false;
 
+        async function ensureFlashcardSessionAccess() {
+            if (!flashcardSessionMode) {
+                return true;
+            }
+            const response = await fetch('/api/flashcards/modules', { cache: 'no-store' });
+            if (!response.ok) {
+                window.location.href = '/';
+                return false;
+            }
+            return true;
+        }
+
         // Initialize
         async function init() {
             try {
+                if (!(await ensureFlashcardSessionAccess())) {
+                    return;
+                }
                 const response = await fetch('/api/flashcards/modules');
                 if (!response.ok) {
                     throw new Error(`Modules API failed: ${response.status}`);
@@ -585,7 +604,10 @@
                 modules = data.modules;
                 renderModuleList();
                 if (modules.length > 0) {
-                    await selectModule(modules[0].id);
+                    const defaultModuleId = flashcardSessionMode && enabledFlashcardModules.length
+                        ? enabledFlashcardModules[0]
+                        : modules[0].id;
+                    await selectModule(defaultModuleId);
                 } else {
                     showError('No modules available to load flashcards.');
                 }
@@ -608,6 +630,9 @@
         }
 
         async function selectModule(moduleId) {
+            if (!(await ensureFlashcardSessionAccess())) {
+                return;
+            }
             currentModuleId = moduleId;
             currentCardIndex = 0;
             isFlipped = false;
@@ -702,6 +727,9 @@
         }
 
         function toggleFlip() {
+            if (flashcardSessionMode && !flashcards.length) {
+                return;
+            }
             isFlipped = !isFlipped;
             const card = document.getElementById('flashcard');
             if (isFlipped) {
@@ -737,7 +765,10 @@
         }
 
         // Event listeners
-        document.getElementById('prevBtn').addEventListener('click', () => {
+        document.getElementById('prevBtn').addEventListener('click', async () => {
+            if (!(await ensureFlashcardSessionAccess())) {
+                return;
+            }
             if (currentCardIndex > 0) {
                 currentCardIndex--;
                 isFlipped = false;
@@ -745,7 +776,10 @@
             }
         });
 
-        document.getElementById('nextBtn').addEventListener('click', () => {
+        document.getElementById('nextBtn').addEventListener('click', async () => {
+            if (!(await ensureFlashcardSessionAccess())) {
+                return;
+            }
             if (currentCardIndex < flashcards.length - 1) {
                 currentCardIndex++;
                 isFlipped = false;
@@ -753,7 +787,10 @@
             }
         });
 
-        document.getElementById('doneBtn').addEventListener('click', () => {
+        document.getElementById('doneBtn').addEventListener('click', async () => {
+            if (!(await ensureFlashcardSessionAccess())) {
+                return;
+            }
             currentModuleId = null;
             flashcards = [];
             currentCardIndex = 0;
@@ -764,9 +801,17 @@
             disableNavigation();
         });
 
-        document.getElementById('regenerateBtn').addEventListener('click', loadFlashcards);
+        document.getElementById('regenerateBtn').addEventListener('click', async () => {
+            if (!(await ensureFlashcardSessionAccess())) {
+                return;
+            }
+            loadFlashcards();
+        });
 
-        document.getElementById('cardCountSelector').addEventListener('change', () => {
+        document.getElementById('cardCountSelector').addEventListener('change', async () => {
+            if (!(await ensureFlashcardSessionAccess())) {
+                return;
+            }
             if (currentModuleId) {
                 loadFlashcards();
             }
@@ -799,6 +844,9 @@
         });
 
         // Initialize on page load
+        if (flashcardSessionMode) {
+            setInterval(ensureFlashcardSessionAccess, 3000);
+        }
         window.addEventListener('DOMContentLoaded', init);
     </script>
 </body>

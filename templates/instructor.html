@@ -54,7 +54,6 @@
           <select id="mode">
             <option value="quiz">Quiz</option>
             <option value="quiz-modules">Quiz by Module</option>
-            <option value="flashcards">Flashcards</option>
           </select>
           <label style="display:block; margin-top:10px;">Question count</label>
           <select id="questionCount">
@@ -74,6 +73,21 @@
           <div class="btn-row">
             <button id="startBtn" type="button">Start New Session</button>
           </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap;">
+        <div>
+          <div style="font-size:0.8rem; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:1px;">Flashcards Session (Separate Key)</div>
+          <div id="flashcardKey" class="session-key" style="font-size:1.5rem; margin-top:4px;">-</div>
+          <div id="flashcardStatus" class="status muted">No active flashcards-only session</div>
+          <div id="flashcardLearners" class="status">Learners: 0</div>
+        </div>
+        <div class="btn-row" style="margin-top:0;">
+          <button id="startFlashcardsBtn" type="button">Start Flashcards Session</button>
+          <button id="endFlashcardsBtn" class="btn-danger" type="button">End Flashcards Session</button>
         </div>
       </div>
     </div>
@@ -116,20 +130,22 @@
     const learnerCountEl = document.getElementById('learnerCount');
     const liveStatusEl = document.getElementById('liveStatus');
     const modeSelectEl = document.getElementById('mode');
+    const flashcardKeyEl = document.getElementById('flashcardKey');
+    const flashcardStatusEl = document.getElementById('flashcardStatus');
+    const flashcardLearnersEl = document.getElementById('flashcardLearners');
+    const startFlashcardsBtn = document.getElementById('startFlashcardsBtn');
+    const endFlashcardsBtn = document.getElementById('endFlashcardsBtn');
 
     let currentKey = '';
     let currentPushedQuestion = null;
     let previewRevealed = false;
     let currentMode = 'quiz';
+    let currentFlashcardKey = '';
 
     function updateControlsForMode(mode) {
-      const isFlashcards = mode === 'flashcards';
-      pushBtn.disabled = isFlashcards;
-      revealBtn.disabled = isFlashcards;
-      nextBtn.disabled = isFlashcards;
-      if (isFlashcards) {
-        liveStatusEl.textContent = 'Flashcard session active (question push disabled)';
-      }
+      pushBtn.disabled = false;
+      revealBtn.disabled = false;
+      nextBtn.disabled = false;
     }
 
     function renderModules() {
@@ -183,10 +199,6 @@
     async function pushQuestion() {
       if (!currentKey) {
         alert('Start a session first');
-        return;
-      }
-      if (currentMode === 'flashcards') {
-        alert('Push Question is not available for Flashcards mode.');
         return;
       }
       const modules = selectedModuleIds();
@@ -271,8 +283,53 @@
       updateControlsForMode(currentMode);
     }
 
+    async function startFlashcardsSession() {
+      const res = await fetch('/api/session/start-flashcards', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({card_count: 25}),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Could not start flashcards session');
+        return;
+      }
+      currentFlashcardKey = data.key;
+      flashcardKeyEl.textContent = currentFlashcardKey;
+      flashcardStatusEl.textContent = 'Flashcards-only session active (all modules enabled)';
+      flashcardLearnersEl.textContent = 'Learners: 0';
+    }
+
+    async function endFlashcardsSession() {
+      if (!currentFlashcardKey) {
+        alert('No active flashcards session.');
+        return;
+      }
+      const res = await fetch('/api/session/end-flashcards', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({key: currentFlashcardKey}),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Could not end flashcards session');
+        return;
+      }
+      currentFlashcardKey = '';
+      flashcardKeyEl.textContent = '-';
+      flashcardStatusEl.textContent = 'Flashcards session ended';
+      flashcardLearnersEl.textContent = 'Learners: 0';
+    }
+
     async function pollStatus() {
       if (!currentKey) {
+        if (currentFlashcardKey) {
+          const flashRes = await fetch(`/api/session/status?key=${encodeURIComponent(currentFlashcardKey)}`);
+          const flashData = await flashRes.json();
+          if (flashRes.ok) {
+            flashcardLearnersEl.textContent = `Learners: ${flashData.learner_count}`;
+          }
+        }
         return;
       }
       const res = await fetch(`/api/session/status?key=${encodeURIComponent(currentKey)}`);
@@ -285,6 +342,13 @@
         const pct = data.learner_count > 0 ? (data.answered_count / data.learner_count) * 100 : 0;
         progressFill.style.width = `${pct}%`;
       }
+      if (currentFlashcardKey) {
+        const flashRes = await fetch(`/api/session/status?key=${encodeURIComponent(currentFlashcardKey)}`);
+        const flashData = await flashRes.json();
+        if (flashRes.ok) {
+          flashcardLearnersEl.textContent = `Learners: ${flashData.learner_count}`;
+        }
+      }
     }
 
     setInterval(pollStatus, 3000);
@@ -293,6 +357,8 @@
     revealBtn.addEventListener('click', revealAnswer);
     nextBtn.addEventListener('click', nextQuestion);
     endBtn.addEventListener('click', endSession);
+    startFlashcardsBtn.addEventListener('click', startFlashcardsSession);
+    endFlashcardsBtn.addEventListener('click', endFlashcardsSession);
     renderModules();
   </script>
 </body>

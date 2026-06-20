@@ -119,6 +119,19 @@ def check_instructor_auth(incoming_request) -> bool:
     return incoming_request.cookies.get("instructor_auth") == hashlib.sha256(INSTRUCTOR_PASSWORD.encode()).hexdigest()
 
 
+def get_active_learner_session(expected_mode: Optional[str] = None):
+    """Return (key, session) for an active learner cookie session, optionally filtered by mode."""
+    key = request.cookies.get("learner_session_key", "")
+    if not is_valid_session(key):
+        return None, None
+    session = state["live_sessions"].get(key)
+    if not session:
+        return None, None
+    if expected_mode and session.get("mode") != expected_mode:
+        return None, None
+    return key, session
+
+
 def build_agent_reference() -> dict:
     """Build the agent reference body from env vars."""
     # This API expects the field name "name"; we allow AGENT_ID as the preferred
@@ -668,13 +681,24 @@ def quiz_modules_page():
 @app.route("/flashcards")
 def flashcards_page():
     """Serve the module-based flashcards page."""
-    if not check_instructor_auth(request):
+    is_instructor = check_instructor_auth(request)
+    flashcard_session_mode = False
+    flashcard_modules = list(range(1, len(AI103_MODULES) + 1))
+    if not is_instructor:
         key = request.cookies.get("learner_session_key", "")
         if not is_valid_session(key):
             return redirect("/")
-        if state["live_sessions"][key].get("mode") != "flashcards":
+        learner_session = state["live_sessions"][key]
+        if learner_session.get("mode") != "flashcards":
             return redirect("/session")
-    return render_template("ai3026-flashcards.html")
+        flashcard_session_mode = True
+        flashcard_modules = learner_session.get("modules", flashcard_modules)
+    return render_template(
+        "ai3026-flashcards.html",
+        is_instructor=is_instructor,
+        flashcard_session_mode=flashcard_session_mode,
+        flashcard_modules=flashcard_modules,
+    )
 
 
 @app.route("/instructor", methods=["GET"])
@@ -973,6 +997,13 @@ def save_quiz_results():
 @app.route("/api/flashcards/modules", methods=["GET"])
 def flashcard_modules():
     """List modules for flashcard generation."""
+    allowed_ids = set(range(1, len(AI103_MODULES) + 1))
+    if not check_instructor_auth(request):
+        _, learner_session = get_active_learner_session(expected_mode="flashcards")
+        if not learner_session:
+            return jsonify({"error": "invalid or inactive flashcard session"}), 403
+        allowed_ids = set(learner_session.get("modules", []))
+
     modules = [
         {
             "id": idx + 1,
@@ -980,6 +1011,7 @@ def flashcard_modules():
             "url": module["url"],
         }
         for idx, module in enumerate(AI103_MODULES)
+        if (idx + 1) in allowed_ids
     ]
     return jsonify({"modules": modules})
 
@@ -991,8 +1023,20 @@ def flashcards_by_module():
     count = request.args.get("count", default=10, type=int)
     fresh = request.args.get("fresh", default=True, type=bool)
 
+    allowed_ids = set(range(1, len(AI103_MODULES) + 1))
+    if not check_instructor_auth(request):
+        _, learner_session = get_active_learner_session(expected_mode="flashcards")
+        if not learner_session:
+            return jsonify({"error": "invalid or inactive flashcard session"}), 403
+        allowed_ids = set(learner_session.get("modules", []))
+
+    if module_id is None:
+        module_id = min(allowed_ids) if allowed_ids else 1
+
     if module_id is None or module_id < 1 or module_id > len(AI103_MODULES):
         return jsonify({"error": "module_id is out of range"}), 400
+    if module_id not in allowed_ids:
+        return jsonify({"error": "module is not enabled for this flashcard session"}), 403
 
     selected = AI103_MODULES[module_id - 1]
     safe_count = max(1, min(count, 25))
@@ -1108,6 +1152,8 @@ def start_session():
         return jsonify({"error": "unauthorized"}), 403
 
     data = request.get_json() or {}
+    if data.get("mode") == "flashcards":
+        return jsonify({"error": "Use /api/session/start-flashcards for flashcard-only sessions"}), 400
     key = generate_session_key()
     while key in state["live_sessions"]:
         key = generate_session_key()
@@ -1131,6 +1177,53 @@ def start_session():
         "created_at": datetime.now(),
     }
     return jsonify({"key": key})
+
+
+@app.route("/api/session/start-flashcards", methods=["POST"])
+def start_flashcards_session():
+    """Create a flashcards-only session with a dedicated key. Instructor only."""
+    if not check_instructor_auth(request):
+        return jsonify({"error": "unauthorized"}), 403
+
+    data = request.get_json() or {}
+    key = generate_session_key()
+    while key in state["live_sessions"]:
+        key = generate_session_key()
+
+    requested_count = int(data.get("card_count", 25))
+    safe_count = max(5, min(requested_count, 25))
+    all_modules = list(range(1, len(AI103_MODULES) + 1))
+
+    state["live_sessions"][key] = {
+        "active": True,
+        "mode": "flashcards",
+        "modules": all_modules,
+        "question_count": safe_count,
+        "timer_seconds": 60,
+        "current_question": None,
+        "current_question_pushed_at": None,
+        "answer_revealed": False,
+        "learners": set(),
+        "answers": {},
+        "submitted_for_question": set(),
+        "created_at": datetime.now(),
+    }
+    return jsonify({"key": key, "mode": "flashcards", "modules": all_modules})
+
+
+@app.route("/api/session/end-flashcards", methods=["POST"])
+def end_flashcards_session():
+    """End an active flashcards-only session. Instructor only."""
+    if not check_instructor_auth(request):
+        return jsonify({"error": "unauthorized"}), 403
+
+    key = (request.get_json() or {}).get("key", "")
+    session = state["live_sessions"].get(key)
+    if not session or session.get("mode") != "flashcards":
+        return jsonify({"error": "flashcard session not found"}), 404
+
+    session["active"] = False
+    return jsonify({"status": "ended", "mode": "flashcards"})
 
 
 @app.route("/api/session/end", methods=["POST"])
