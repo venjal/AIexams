@@ -577,6 +577,21 @@
         let currentModuleId = null;
         let currentCardIndex = 0;
         let isFlipped = false;
+        let sessionRedirecting = false;
+
+        function redirectSessionEnded() {
+            if (sessionRedirecting) {
+                return;
+            }
+            sessionRedirecting = true;
+            const contentArea = document.getElementById('contentArea');
+            if (contentArea) {
+                contentArea.innerHTML = '<div class="status-message error-message">Flashcards session ended by instructor. Redirecting to landing page...</div>';
+            }
+            setTimeout(() => {
+                window.location.href = '/';
+            }, 1200);
+        }
 
         async function ensureFlashcardSessionAccess() {
             if (!flashcardSessionMode) {
@@ -584,7 +599,7 @@
             }
             const response = await fetch('/api/flashcards/modules', { cache: 'no-store' });
             if (!response.ok) {
-                window.location.href = '/';
+                redirectSessionEnded();
                 return false;
             }
             return true;
