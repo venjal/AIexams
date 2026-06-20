@@ -1110,6 +1110,8 @@ def start_session():
         "current_question_pushed_at": None,
         "answer_revealed": False,
         "learners": set(),
+        "answers": {},
+        "submitted_for_question": set(),
         "created_at": datetime.now(),
     }
     return jsonify({"key": key})
@@ -1192,6 +1194,12 @@ def current_question():
     session_id = request.cookies.get(SESSION_COOKIE, str(uuid.uuid4()))
     session.setdefault("learners", set()).add(session_id)
 
+    # Get learner's own score
+    session_id = request.cookies.get(SESSION_COOKIE, str(uuid.uuid4()))
+    learner_answers = session.get("answers", {}).get(session_id, {})
+    my_score = learner_answers.get("score", 0)
+    my_total = learner_answers.get("total", 0)
+
     return jsonify({
         "question": session.get("current_question"),
         "pushed_at": session.get("current_question_pushed_at"),
@@ -1199,6 +1207,8 @@ def current_question():
         "timer_seconds": session.get("timer_seconds", 60),
         "active": session.get("active", False),
         "mode": session.get("mode", "quiz"),
+        "my_score": my_score,
+        "my_total": my_total,
     })
 
 
@@ -1213,10 +1223,90 @@ def session_status():
     if not session:
         return jsonify({"error": "not found"}), 404
 
+    # Count answered learners and score distribution for current question
+    answers = session.get("answers", {})
+    current_q = session.get("current_question")
+    q_hash = hash(str(current_q)) if current_q else None
+    
+    answered_count = len(session.get("submitted_for_question", set()))
+    learner_count = len(session.get("learners", set()))
+    
+    # Score distribution for current question
+    correct = 0
+    incorrect = 0
+    for learner_id, learner_data in answers.items():
+        last_answer = learner_data.get("last_answer", {})
+        if last_answer.get("question_hash") == q_hash:
+            if last_answer.get("correct"):
+                correct += 1
+            else:
+                incorrect += 1
+
     return jsonify({
         "active": session.get("active"),
-        "learner_count": len(session.get("learners", set())),
+        "learner_count": learner_count,
+        "answered_count": answered_count,
+        "correct": correct,
+        "incorrect": incorrect,
         "key": key,
+    })
+
+
+@app.route("/api/session/submit-answer", methods=["POST"])
+def submit_answer():
+    """Learner submits an answer choice for the current question."""
+    data = request.get_json() or {}
+    key = data.get("key", "")
+    chosen = data.get("chosen")
+    question_hash = data.get("question_hash")
+    
+    if not is_valid_session(key):
+        return jsonify({"error": "invalid session"}), 403
+    
+    session = state["live_sessions"][key]
+    current_q = session.get("current_question")
+    if not current_q:
+        return jsonify({"error": "no question"}), 400
+    
+    # Prevent duplicate submissions for same question
+    submission_key = f"{question_hash}"
+    if submission_key in session.get("submitted_for_question", set()):
+        # Already submitted for this question, return existing score
+        session_id = request.cookies.get(SESSION_COOKIE, str(uuid.uuid4()))
+        learner_data = session.get("answers", {}).get(session_id, {})
+        return jsonify({
+            "correct": learner_data.get("last_answer", {}).get("correct", False),
+            "score": learner_data.get("score", 0),
+            "total": learner_data.get("total", 0),
+        })
+    
+    session.setdefault("submitted_for_question", set()).add(submission_key)
+    
+    # Get learner session ID
+    session_id = request.cookies.get(SESSION_COOKIE, str(uuid.uuid4()))
+    session.setdefault("answers", {}).setdefault(session_id, {
+        "score": 0,
+        "total": 0,
+        "last_answer": {},
+    })
+    
+    learner_data = session["answers"][session_id]
+    correct_idx = int(current_q.get("answer", -1))
+    is_correct = int(chosen) == correct_idx
+    
+    if is_correct:
+        learner_data["score"] += 1
+    learner_data["total"] += 1
+    learner_data["last_answer"] = {
+        "chosen": int(chosen),
+        "correct": is_correct,
+        "question_hash": question_hash,
+    }
+    
+    return jsonify({
+        "correct": is_correct,
+        "score": learner_data["score"],
+        "total": learner_data["total"],
     })
 
 

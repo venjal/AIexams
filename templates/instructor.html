@@ -76,6 +76,10 @@
       <div>Session key</div>
       <div id="sessionKey" class="session-key">-</div>
       <div id="learnerCount" class="status">Learners: 0</div>
+      <div id="statsBar" class="status muted">Answered: 0 / 0  |  Correct: 0  Incorrect: 0</div>
+      <div id="progressBar" style="margin-top:8px; background:#e2e8f0; border-radius:8px; overflow:hidden; height:8px;">
+        <div id="progressFill" style="width:0%; background:#3b82f6; height:100%; transition:width 0.3s;"></div>
+      </div>
       <div id="liveStatus" class="status muted">No active session</div>
 
       <div class="btn-row">
@@ -205,10 +209,15 @@
       const data = await res.json();
       if (res.ok) {
         learnerCountEl.textContent = `Learners: ${data.learner_count}`;
+        const statsBar = document.getElementById('statsBar');
+        const progressFill = document.getElementById('progressFill');
+        statsBar.textContent = `Answered: ${data.answered_count} / ${data.learner_count}  |  Correct: ${data.correct}  Incorrect: ${data.incorrect}`;
+        const pct = data.learner_count > 0 ? (data.answered_count / data.learner_count) * 100 : 0;
+        progressFill.style.width = `${pct}%`;
       }
     }
 
-    setInterval(pollStatus, 5000);
+    setInterval(pollStatus, 3000);
     startBtn.addEventListener('click', startSession);
     pushBtn.addEventListener('click', pushQuestion);
     revealBtn.addEventListener('click', revealAnswer);

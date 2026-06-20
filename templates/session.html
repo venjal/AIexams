@@ -8,6 +8,7 @@
     body { margin: 0; background: #f8fafc; color: #0f172a; font-family: Segoe UI, Arial, sans-serif; }
     .wrap { max-width: 880px; margin: 20px auto; padding: 0 14px; }
     .card { background: #fff; border: 1px solid #dbe3ee; border-radius: 12px; padding: 16px; }
+    .score-badge { position: fixed; top: 20px; right: 20px; background: #2563eb; color: #fff; padding: 10px 16px; border-radius: 20px; font-weight: 700; font-size: 0.95rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
     .muted { color: #64748b; }
     .key { font-weight: 700; color: #1d4ed8; }
     .hidden { display: none; }
@@ -19,10 +20,14 @@
     .timer-wrap { margin-top: 10px; background: #e2e8f0; border-radius: 999px; overflow: hidden; height: 12px; }
     .timer-bar { height: 12px; width: 100%; background: #22c55e; transition: width 1s linear, background-color 0.8s linear; }
     .explanation { margin-top: 12px; border: 1px solid #dbe3ee; border-radius: 10px; padding: 10px; background: #f8fafc; }
+    .feedback { margin-top: 10px; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 0.95rem; }
+    .feedback.correct { background: #dcfce7; border: 1px solid #16a34a; color: #15803d; }
+    .feedback.incorrect { background: #fee2e2; border: 1px solid #dc2626; color: #b91c1c; }
     .next-btn { margin-top: 12px; border: none; border-radius: 8px; background: #2563eb; color: #fff; padding: 10px 12px; font-weight: 700; cursor: pointer; }
   </style>
 </head>
 <body>
+  <div id="scoreBadge" class="score-badge">Score: 0 / 0</div>
   <div class="wrap">
     <div class="card">
       <div>Session key: <span class="key">{{ key }}</span></div>
@@ -49,10 +54,13 @@
     const timerText = document.getElementById('timerText');
     const explanationEl = document.getElementById('explanation');
     const nextBtn = document.getElementById('nextBtn');
+    const scoreBadge = document.getElementById('scoreBadge');
 
     let currentQuestion = null;
     let revealed = false;
     let timerHandle = null;
+    let myScore = 0;
+    let myTotal = 0;
 
     function showWaiting() {
       waitingEl.classList.remove('hidden');
@@ -81,6 +89,36 @@
       explanationEl.textContent = question.explanation || '';
       explanationEl.classList.remove('hidden');
       nextBtn.classList.remove('hidden');
+      
+      // Submit answer and show feedback
+      submitAnswer(question);
+    }
+
+    async function submitAnswer(question) {
+      const qHash = question._hash || JSON.stringify(question);
+      try {
+        const res = await fetch('/api/session/submit-answer', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({
+            key,
+            chosen: question._chosen !== undefined ? question._chosen : question.answer,
+            question_hash: qHash,
+          }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          myScore = data.score;
+          myTotal = data.total;
+          scoreBadge.textContent = `Score: ${myScore} / ${myTotal}`;
+          
+          const feedbackDiv = document.createElement('div');
+          feedbackDiv.className = `feedback ${data.correct ? 'correct' : 'incorrect'}`;
+          feedbackDiv.textContent = data.correct ? '✓ Correct! +1' : '✗ Incorrect';
+          explanationEl.parentNode.insertBefore(feedbackDiv, nextBtn);
+        }
+      } catch (e) {
+      }
     }
 
     function startTimer(seconds, question) {
@@ -119,12 +157,13 @@
       nextBtn.classList.add('hidden');
       revealed = false;
 
-      (question.options || []).forEach((opt) => {
+      (question.options || []).forEach((opt, idx) => {
         const div = document.createElement('div');
         div.className = 'option';
         div.textContent = opt;
         div.addEventListener('click', () => {
           if (!revealed) {
+            question._chosen = idx;
             revealAnswer(question);
           }
         });
@@ -144,6 +183,13 @@
         if (!res.ok || !data.active) {
           showWaiting();
           return;
+        }
+
+        // Update score badge from response
+        if (data.my_score !== undefined && data.my_total !== undefined) {
+          myScore = data.my_score;
+          myTotal = data.my_total;
+          scoreBadge.textContent = `Score: ${myScore} / ${myTotal}`;
         }
 
         // Check for mode and redirect if this is the first poll
@@ -166,6 +212,7 @@
         const sameQuestion = currentQuestion && JSON.stringify(currentQuestion) === JSON.stringify(data.question);
         if (!sameQuestion) {
           currentQuestion = data.question;
+          currentQuestion._hash = JSON.stringify(data.question);
           renderQuestion(data.question, data.timer_seconds, data.answer_revealed);
           return;
         }
