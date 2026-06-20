@@ -115,10 +115,22 @@
     const sessionKeyEl = document.getElementById('sessionKey');
     const learnerCountEl = document.getElementById('learnerCount');
     const liveStatusEl = document.getElementById('liveStatus');
+    const modeSelectEl = document.getElementById('mode');
 
     let currentKey = '';
     let currentPushedQuestion = null;
     let previewRevealed = false;
+    let currentMode = 'quiz';
+
+    function updateControlsForMode(mode) {
+      const isFlashcards = mode === 'flashcards';
+      pushBtn.disabled = isFlashcards;
+      revealBtn.disabled = isFlashcards;
+      nextBtn.disabled = isFlashcards;
+      if (isFlashcards) {
+        liveStatusEl.textContent = 'Flashcard session active (question push disabled)';
+      }
+    }
 
     function renderModules() {
       moduleList.innerHTML = '';
@@ -144,8 +156,9 @@
         alert('Select at least one module before starting a session.');
         return;
       }
+      currentMode = modeSelectEl.value;
       const payload = {
-        mode: document.getElementById('mode').value,
+        mode: currentMode,
         modules: selectedMods,
         question_count: Number(document.getElementById('questionCount').value),
         timer_seconds: Number(document.getElementById('timerSeconds').value),
@@ -163,12 +176,17 @@
       currentKey = data.key;
       sessionKeyEl.textContent = currentKey;
       liveStatusEl.textContent = 'Session active';
+      updateControlsForMode(currentMode);
       await pollStatus();
     }
 
     async function pushQuestion() {
       if (!currentKey) {
         alert('Start a session first');
+        return;
+      }
+      if (currentMode === 'flashcards') {
+        alert('Push Question is not available for Flashcards mode.');
         return;
       }
       const modules = selectedModuleIds();
@@ -246,9 +264,11 @@
       });
       liveStatusEl.textContent = 'Session ended';
       currentKey = '';
+      currentMode = 'quiz';
       sessionKeyEl.textContent = '-';
       learnerCountEl.textContent = 'Learners: 0';
       document.getElementById('questionPreviewCard').style.display = 'none';
+      updateControlsForMode(currentMode);
     }
 
     async function pollStatus() {

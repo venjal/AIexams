@@ -622,7 +622,9 @@ def join_session():
     key = request.form.get("key", "").strip().upper()
     if not key or not is_valid_session(key):
         return render_template("landing.html", error="Invalid or expired session key. Ask your instructor for the current key.")
-    res = make_response(redirect("/session"))
+    session = state["live_sessions"][key]
+    target = "/flashcards" if session.get("mode") == "flashcards" else "/session"
+    res = make_response(redirect(target))
     res.set_cookie("learner_session_key", key, httponly=True, samesite="Lax")
     return res
 
@@ -634,30 +636,44 @@ def session_view():
     if not is_valid_session(key):
         return redirect("/")
     session = state["live_sessions"][key]
+    if session.get("mode") == "flashcards":
+        return redirect("/flashcards")
     return render_template("session.html", session=session, key=key)
 
 
 @app.route("/quiz")
 def quiz_page():
     """Serve the easy AI3026 objective quiz page."""
-    if not check_instructor_auth(request) and not is_valid_session(request.cookies.get("learner_session_key", "")):
-        return redirect("/")
+    if not check_instructor_auth(request):
+        key = request.cookies.get("learner_session_key", "")
+        if not is_valid_session(key):
+            return redirect("/")
+        if state["live_sessions"][key].get("mode") == "flashcards":
+            return redirect("/flashcards")
     return render_template("ai3026-quiz.html")
 
 
 @app.route("/quiz-modules")
 def quiz_modules_page():
     """Serve the module-based AI3026 quiz page."""
-    if not check_instructor_auth(request) and not is_valid_session(request.cookies.get("learner_session_key", "")):
-        return redirect("/")
+    if not check_instructor_auth(request):
+        key = request.cookies.get("learner_session_key", "")
+        if not is_valid_session(key):
+            return redirect("/")
+        if state["live_sessions"][key].get("mode") == "flashcards":
+            return redirect("/flashcards")
     return render_template("ai3026-modules-quiz.html")
 
 
 @app.route("/flashcards")
 def flashcards_page():
     """Serve the module-based flashcards page."""
-    if not check_instructor_auth(request) and not is_valid_session(request.cookies.get("learner_session_key", "")):
-        return redirect("/")
+    if not check_instructor_auth(request):
+        key = request.cookies.get("learner_session_key", "")
+        if not is_valid_session(key):
+            return redirect("/")
+        if state["live_sessions"][key].get("mode") != "flashcards":
+            return redirect("/session")
     return render_template("ai3026-flashcards.html")
 
 
@@ -1142,6 +1158,8 @@ def push_question():
     session = state["live_sessions"].get(key)
     if not session or not session["active"]:
         return jsonify({"error": "session not found"}), 404
+    if session.get("mode") == "flashcards":
+        return jsonify({"error": "flashcard sessions do not support pushed quiz questions"}), 400
 
     session["current_question"] = question
     session["current_question_pushed_at"] = datetime.now().isoformat()
