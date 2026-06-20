@@ -13,7 +13,8 @@
     .hidden { display: none; }
     .question { margin-top: 10px; font-size: 1.15rem; font-weight: 700; }
     .options { margin-top: 10px; display: grid; gap: 8px; }
-    .option { border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; background: #fff; }
+    .option { border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; background: #fff; cursor: pointer; }
+    .option:hover { background: #f1f5f9; }
     .correct { border-color: #16a34a; background: #dcfce7; }
     .timer-wrap { margin-top: 10px; background: #e2e8f0; border-radius: 999px; overflow: hidden; height: 12px; }
     .timer-bar { height: 12px; width: 100%; background: #22c55e; transition: width 1s linear, background-color 0.8s linear; }
@@ -68,11 +69,14 @@
 
     function revealAnswer(question) {
       revealed = true;
+      if (timerHandle) clearInterval(timerHandle);
       const nodes = optionsEl.querySelectorAll('.option');
       nodes.forEach((node, idx) => {
         if (idx === Number(question.answer)) {
           node.classList.add('correct');
         }
+        node.style.cursor = 'default';
+        node.style.pointerEvents = 'none';
       });
       explanationEl.textContent = question.explanation || '';
       explanationEl.classList.remove('hidden');
@@ -119,6 +123,11 @@
         const div = document.createElement('div');
         div.className = 'option';
         div.textContent = opt;
+        div.addEventListener('click', () => {
+          if (!revealed) {
+            revealAnswer(question);
+          }
+        });
         optionsEl.appendChild(div);
       });
 
