@@ -764,8 +764,9 @@
 
         function updateButtonStates() {
             const total = flashcards.length;
-            document.getElementById('prevBtn').disabled = currentCardIndex === 0;
-            document.getElementById('nextBtn').disabled = currentCardIndex >= total - 1;
+            const hasCards = total > 0;
+            document.getElementById('prevBtn').disabled = !hasCards;
+            document.getElementById('nextBtn').disabled = !hasCards;
         }
 
         function disableNavigation() {
@@ -784,22 +785,20 @@
             if (!(await ensureFlashcardSessionAccess())) {
                 return;
             }
-            if (currentCardIndex > 0) {
-                currentCardIndex--;
-                isFlipped = false;
-                renderFlashcard();
-            }
+            if (!flashcards.length) return;
+            currentCardIndex = (currentCardIndex - 1 + flashcards.length) % flashcards.length;
+            isFlipped = false;
+            renderFlashcard();
         });
 
         document.getElementById('nextBtn').addEventListener('click', async () => {
             if (!(await ensureFlashcardSessionAccess())) {
                 return;
             }
-            if (currentCardIndex < flashcards.length - 1) {
-                currentCardIndex++;
-                isFlipped = false;
-                renderFlashcard();
-            }
+            if (!flashcards.length) return;
+            currentCardIndex = (currentCardIndex + 1) % flashcards.length;
+            isFlipped = false;
+            renderFlashcard();
         });
 
         document.getElementById('doneBtn').addEventListener('click', async () => {
