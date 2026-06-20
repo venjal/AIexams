@@ -18,11 +18,20 @@ from datetime import datetime
 from pathlib import Path
 from typing import Dict, Optional
 
-from dotenv import load_dotenv
 from flask import Flask, jsonify, request, render_template, make_response
 
-from azure.identity import DefaultAzureCredential
-from azure.ai.projects import AIProjectClient
+try:
+    from dotenv import load_dotenv
+except ImportError:
+    def load_dotenv():
+        return False
+
+try:
+    from azure.identity import DefaultAzureCredential
+    from azure.ai.projects import AIProjectClient
+except ImportError:
+    DefaultAzureCredential = None
+    AIProjectClient = None
 
 # Load settings (your endpoint + agent name) from the .env file sitting next to this file.
 load_dotenv()
@@ -45,6 +54,11 @@ def get_openai_client():
         raise RuntimeError(
             "Foundry is not configured. Set PROJECT_ENDPOINT and AGENT_ID (or AGENT_NAME) "
             "if you want to use /chat."
+        )
+    if DefaultAzureCredential is None or AIProjectClient is None:
+        raise RuntimeError(
+            "Foundry dependencies are not installed. Install azure-identity and azure-ai-projects "
+            "to enable /chat."
         )
     if openai_client is None:
         # DefaultAzureCredential uses the login you already have on this machine
