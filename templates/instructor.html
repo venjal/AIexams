@@ -22,6 +22,8 @@
     .muted { color: #64748b; }
     .status { font-size: 0.95rem; margin-top: 8px; }
     .top-actions { display: flex; justify-content: space-between; align-items: center; }
+    .preview-option { border: 1px solid #cbd5e1; border-radius: 8px; padding: 9px 12px; background: #fff; }
+    .preview-option.correct-ans { border-color: #16a34a; background: #dcfce7; font-weight: 700; color: #15803d; }
   </style>
 </head>
 <body>
@@ -88,6 +90,13 @@
         <button id="nextBtn" class="btn-secondary" type="button">Next Question</button>
         <button id="endBtn" class="btn-danger" type="button">End Session</button>
       </div>
+    </div>
+
+    <div class="card" id="questionPreviewCard" style="display:none;">
+      <div style="font-size:0.8rem; font-weight:700; color:#64748b; text-transform:uppercase; letter-spacing:1px;">Current Question (Instructor View)</div>
+      <div id="previewQuestion" style="margin-top:8px; font-size:1.1rem; font-weight:700;"></div>
+      <div id="previewOptions" style="margin-top:10px; display:grid; gap:6px;"></div>
+      <div id="previewExplanation" style="margin-top:10px; padding:10px; border:1px solid #dbe3ee; border-radius:8px; background:#f8fafc; display:none;"></div>
     </div>
   </div>
 
@@ -166,6 +175,26 @@
         return;
       }
       liveStatusEl.textContent = 'Question pushed';
+      renderQuestionPreview(qData.questions[0]);
+    }
+
+    function renderQuestionPreview(question) {
+      const card = document.getElementById('questionPreviewCard');
+      const qEl = document.getElementById('previewQuestion');
+      const optsEl = document.getElementById('previewOptions');
+      const expEl = document.getElementById('previewExplanation');
+      card.style.display = 'block';
+      qEl.textContent = question.question || '';
+      optsEl.innerHTML = '';
+      const correctIdx = Number(question.answer);
+      (question.options || []).forEach((opt, idx) => {
+        const div = document.createElement('div');
+        div.className = 'preview-option' + (idx === correctIdx ? ' correct-ans' : '');
+        div.textContent = (idx === correctIdx ? '✓ ' : '') + opt;
+        optsEl.appendChild(div);
+      });
+      expEl.textContent = question.explanation || '';
+      expEl.style.display = question.explanation ? 'block' : 'none';
     }
 
     async function revealAnswer() {
@@ -186,6 +215,7 @@
         body: JSON.stringify({key: currentKey}),
       });
       liveStatusEl.textContent = 'Waiting for next push';
+      document.getElementById('questionPreviewCard').style.display = 'none';
     }
 
     async function endSession() {
@@ -199,6 +229,7 @@
       currentKey = '';
       sessionKeyEl.textContent = '-';
       learnerCountEl.textContent = 'Learners: 0';
+      document.getElementById('questionPreviewCard').style.display = 'none';
     }
 
     async function pollStatus() {
