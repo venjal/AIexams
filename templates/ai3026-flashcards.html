@@ -1,0 +1,836 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI3026 Flashcards</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            color: #333;
+        }
+
+        .container {
+            display: flex;
+            width: 100%;
+            gap: 20px;
+            padding: 20px;
+            max-height: 100vh;
+            overflow: hidden;
+        }
+
+        /* Sidebar */
+        .sidebar {
+            width: 280px;
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+            overflow-y: auto;
+            max-height: calc(100vh - 40px);
+        }
+
+        .sidebar h3 {
+            color: #667eea;
+            margin-bottom: 15px;
+            font-size: 14px;
+            text-transform: uppercase;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+        }
+
+        .module-btn {
+            width: 100%;
+            padding: 12px;
+            margin: 8px 0;
+            background: #f5f5f5;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: #333;
+            transition: all 0.3s ease;
+            text-align: left;
+        }
+
+        .module-btn:hover {
+            background: #f0f0f0;
+            border-color: #667eea;
+            transform: translateX(5px);
+        }
+
+        .module-btn.active {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .module-btn .module-title {
+            font-weight: 600;
+            display: block;
+        }
+
+        .module-btn .module-id {
+            font-size: 11px;
+            opacity: 0.7;
+            display: block;
+        }
+
+        /* Main content */
+        .main {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 15px;
+            min-height: 0;
+        }
+
+        /* Top bar */
+        .top-bar {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 20px;
+            flex-wrap: wrap;
+        }
+
+        .top-bar-left {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex: 1;
+            min-width: 300px;
+        }
+
+        .module-name {
+            font-size: 18px;
+            font-weight: 700;
+            color: #333;
+        }
+
+        .progress {
+            font-size: 14px;
+            color: #666;
+            background: #f5f5f5;
+            padding: 8px 12px;
+            border-radius: 6px;
+        }
+
+        .top-bar-right {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            flex-wrap: wrap;
+        }
+
+        .count-selector {
+            padding: 8px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 6px;
+            background: white;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .count-selector:hover {
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 10px 16px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .btn:hover {
+            background: #764ba2;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .info-btn {
+            width: 36px;
+            height: 36px;
+            border-radius: 999px;
+            border: 2px solid #e0e0e0;
+            background: #fff;
+            color: #333;
+            cursor: pointer;
+            font-size: 1rem;
+            font-weight: 700;
+            line-height: 1;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .info-btn:hover {
+            border-color: #667eea;
+            background: #eef2ff;
+        }
+
+        /* Flashcard area */
+        .flashcard-area {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            min-height: 0;
+            width: 100%;
+        }
+
+        #contentArea {
+            width: 100%;
+            display: flex;
+            justify-content: center;
+        }
+
+        .flashcard {
+            width: 100%;
+            max-width: 600px;
+            height: 350px;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.2);
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+            transition: box-shadow 0.2s ease;
+        }
+
+        .flashcard-content {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            padding: 40px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            border-radius: 12px;
+        }
+
+        .flashcard-front {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            font-size: 24px;
+            font-weight: 600;
+            line-height: 1.5;
+        }
+
+        .flashcard-back {
+            background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+            color: white;
+            font-size: 16px;
+            font-weight: 500;
+            line-height: 1.6;
+            display: none;
+        }
+
+        .flashcard-front,
+        .flashcard-back {
+            width: 100%;
+            height: 100%;
+            border-radius: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            padding: 40px;
+            overflow-wrap: break-word;
+            word-break: normal;
+            white-space: normal;
+        }
+
+        .flashcard .flashcard-front {
+            display: flex;
+        }
+
+        .flashcard .flashcard-back {
+            display: none;
+        }
+
+        .flashcard.flipped .flashcard-front {
+            display: none !important;
+        }
+
+        .flashcard.flipped .flashcard-back {
+            display: flex !important;
+        }
+
+        .flashcard-hint {
+            position: absolute;
+            bottom: 15px;
+            right: 15px;
+            font-size: 12px;
+            color: rgba(255, 255, 255, 0.7);
+            font-style: italic;
+        }
+
+        /* Navigation */
+        .navigation {
+            display: flex;
+            gap: 15px;
+            align-items: center;
+            justify-content: center;
+            margin-top: 20px;
+        }
+
+        .nav-btn {
+            padding: 10px 20px;
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 600;
+            transition: all 0.2s ease;
+        }
+
+        .nav-btn:hover:not(:disabled) {
+            background: #667eea;
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .nav-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .card-counter {
+            font-size: 14px;
+            color: #666;
+            background: #f5f5f5;
+            padding: 8px 16px;
+            border-radius: 6px;
+            min-width: 80px;
+            text-align: center;
+        }
+
+        /* Status messages */
+        .status-message {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
+            color: #666;
+        }
+
+        .error-message {
+            background: #fee;
+            color: #c33;
+            border: 1px solid #fcc;
+        }
+
+        .info-modal {
+            position: fixed;
+            inset: 0;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            background: rgba(15, 23, 42, 0.45);
+            z-index: 1000;
+            padding: 20px;
+        }
+
+        .info-modal.open {
+            display: flex;
+        }
+
+        .info-card {
+            width: 100%;
+            max-width: 360px;
+            background: #fff;
+            border-radius: 14px;
+            border: 1px solid #d9e2ee;
+            padding: 16px;
+            box-shadow: 0 10px 30px rgba(15, 23, 42, 0.2);
+            position: relative;
+        }
+
+        .info-card h3 {
+            margin: 0 0 10px;
+            font-size: 1.05rem;
+        }
+
+        .info-card p {
+            margin: 8px 0;
+            color: #334155;
+            font-size: 0.96rem;
+        }
+
+        .info-close {
+            position: absolute;
+            right: 10px;
+            top: 10px;
+            border: none;
+            background: transparent;
+            color: #475569;
+            cursor: pointer;
+            font-size: 1.1rem;
+            line-height: 1;
+        }
+
+        .footer-note {
+            position: fixed;
+            right: 12px;
+            bottom: 8px;
+            font-size: 0.72rem;
+            color: rgba(255, 255, 255, 0.9);
+            background: rgba(15, 23, 42, 0.3);
+            border-radius: 999px;
+            padding: 2px 8px;
+            z-index: 900;
+            backdrop-filter: blur(2px);
+        }
+
+        /* Scrollbar styling */
+        .sidebar::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        .sidebar::-webkit-scrollbar-track {
+            background: #f1f1f1;
+            border-radius: 10px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb {
+            background: #667eea;
+            border-radius: 10px;
+        }
+
+        .sidebar::-webkit-scrollbar-thumb:hover {
+            background: #764ba2;
+        }
+
+        /* Loading state */
+        .loading {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            color: #666;
+        }
+
+        .spinner {
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        @media (max-width: 1024px) {
+            .container {
+                flex-direction: column;
+                padding: 10px;
+            }
+
+            .sidebar {
+                width: 100%;
+                max-height: 200px;
+                display: flex;
+                gap: 10px;
+                overflow-x: auto;
+                flex-direction: row;
+            }
+
+            .module-btn {
+                flex-shrink: 0;
+                min-width: 120px;
+            }
+
+            .top-bar {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+
+            .top-bar-left,
+            .top-bar-right {
+                width: 100%;
+            }
+
+            .top-bar-right {
+                justify-content: flex-start;
+            }
+
+            .flashcard {
+                max-width: 100%;
+                height: 280px;
+            }
+
+            .flashcard-content {
+                padding: 30px;
+            }
+
+            .flashcard-front,
+            .flashcard-back {
+                font-size: 18px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar with modules -->
+        <div class="sidebar" id="modulesSidebar">
+            <h3>Modules</h3>
+            <div id="modulesList"></div>
+        </div>
+
+        <!-- Main content -->
+        <div class="main">
+            <!-- Top bar -->
+            <div class="top-bar">
+                <div class="top-bar-left">
+                    <div class="module-name" id="activeModuleName">Select a module</div>
+                    <div class="progress" id="progressText">0/0</div>
+                </div>
+                <div class="top-bar-right">
+                    <label style="font-size: 12px; color: #666;">Card Count:</label>
+                    <select class="count-selector" id="cardCountSelector">
+                        <option value="5">5 cards</option>
+                        <option value="10" selected>10 cards</option>
+                        <option value="15">15 cards</option>
+                        <option value="20">20 cards</option>
+                        <option value="25">25 cards</option>
+                    </select>
+                    <button class="btn" id="regenerateBtn">Regenerate</button>
+                    <button class="btn" id="saveBtn">Save to File</button>
+                    <button class="info-btn" id="infoBtn" type="button" aria-label="Flashcard information">&#8505;&#65039;</button>
+                </div>
+            </div>
+
+            <!-- Flashcard display area -->
+            <div class="flashcard-area">
+                <div id="contentArea"></div>
+            </div>
+
+            <!-- Navigation -->
+            <div class="navigation">
+                <button class="nav-btn" id="prevBtn">← Previous</button>
+                <div class="card-counter" id="cardCounter">0/0</div>
+                <button class="nav-btn" id="nextBtn">Next →</button>
+                <button class="nav-btn" id="doneBtn">Done</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="info-modal" id="infoModal" aria-hidden="true">
+        <div class="info-card" role="dialog" aria-modal="true" aria-label="Creator information">
+            <button class="info-close" id="closeInfoBtn" type="button" aria-label="Close information">x</button>
+            <h3>Page Info</h3>
+            <p><strong>Creator name:</strong> Venkat Jalasutram</p>
+            <p><strong>Version:</strong> 1.0</p>
+        </div>
+    </div>
+
+    <div class="footer-note">Created by venkat jalasutram</div>
+
+    <script>
+        let modules = [];
+        let flashcards = [];
+        let currentModuleId = null;
+        let currentCardIndex = 0;
+        let isFlipped = false;
+
+        // Initialize
+        async function init() {
+            try {
+                const response = await fetch('/api/flashcards/modules');
+                if (!response.ok) {
+                    throw new Error(`Modules API failed: ${response.status}`);
+                }
+                const data = await response.json();
+                modules = data.modules;
+                renderModuleList();
+                if (modules.length > 0) {
+                    await selectModule(modules[0].id);
+                } else {
+                    showError('No modules available to load flashcards.');
+                }
+            } catch (error) {
+                console.error('Failed to load modules:', error);
+                showError('Could not load modules. Check console for details.');
+            }
+        }
+
+        function renderModuleList() {
+            const list = document.getElementById('modulesList');
+            list.innerHTML = '';
+            modules.forEach(module => {
+                const btn = document.createElement('button');
+                btn.className = 'module-btn';
+                btn.innerHTML = `<span class="module-id">Module ${module.id}</span><span class="module-title">${module.title}</span>`;
+                btn.onclick = () => selectModule(module.id);
+                list.appendChild(btn);
+            });
+        }
+
+        async function selectModule(moduleId) {
+            currentModuleId = moduleId;
+            currentCardIndex = 0;
+            isFlipped = false;
+            updateModuleUI();
+            await loadFlashcards();
+        }
+
+        function updateModuleUI() {
+            document.querySelectorAll('.module-btn').forEach(btn => btn.classList.remove('active'));
+            if (currentModuleId) {
+                const idx = currentModuleId - 1;
+                document.querySelectorAll('.module-btn')[idx].classList.add('active');
+                const module = modules.find(m => m.id === currentModuleId);
+                if (module) {
+                    document.getElementById('activeModuleName').textContent = module.title;
+                }
+            }
+        }
+
+        async function fetchFlashcards(moduleId, count) {
+            const url = `/api/flashcards/module?module_id=${moduleId}&count=${count}&fresh=true`;
+            const response = await fetch(url, { cache: 'no-store' });
+            if (!response.ok) {
+                const errorData = await response.json().catch(() => ({}));
+                const detail = errorData.detail ? ` (${errorData.detail})` : '';
+                throw new Error(`Flashcards API failed: ${response.status}${detail}`);
+            }
+            return await response.json();
+        }
+
+        async function loadFlashcards() {
+            if (!currentModuleId) {
+                showError('Select a module first.');
+                return;
+            }
+
+            const count = document.getElementById('cardCountSelector').value;
+            const contentArea = document.getElementById('contentArea');
+            contentArea.innerHTML = '<div class="status-message"><div class="loading"><div class="spinner"></div><span>Generating flashcards...</span></div></div>';
+
+            try {
+                const data = await fetchFlashcards(currentModuleId, count);
+                flashcards = data.flashcards || [];
+                currentCardIndex = 0;
+                isFlipped = false;
+                renderFlashcard();
+                updateProgress();
+            } catch (error) {
+                console.error('Failed to load flashcards:', error);
+                showError('Could not generate flashcards. Try another module or click Regenerate.');
+            }
+        }
+
+        function renderFlashcard() {
+            const contentArea = document.getElementById('contentArea');
+
+            if (!flashcards || flashcards.length === 0) {
+                contentArea.innerHTML = '<div class="status-message error-message">Unable to load flashcards. Please try again.</div>';
+                disableNavigation();
+                return;
+            }
+
+            if (currentCardIndex >= flashcards.length) {
+                contentArea.innerHTML = '<div class="status-message">Quiz complete! Click Done to go back.</div>';
+                disableNavigation();
+                return;
+            }
+
+            const card = flashcards[currentCardIndex];
+            const frontSide = `
+                ${card.front}
+                <div class="flashcard-hint">Click to reveal answer</div>
+            `;
+            const backSide = `
+                ${card.back}
+                <div class="flashcard-hint">Click to see question</div>
+            `;
+
+            contentArea.innerHTML = `
+                <div class="flashcard ${isFlipped ? 'flipped' : ''}" id="flashcard" onclick="toggleFlip()">
+                    <div class="flashcard-content flashcard-front">
+                        ${frontSide}
+                    </div>
+                    <div class="flashcard-content flashcard-back">
+                        ${backSide}
+                    </div>
+                </div>
+            `;
+
+            updateButtonStates();
+            updateProgress();
+        }
+
+        function toggleFlip() {
+            isFlipped = !isFlipped;
+            const card = document.getElementById('flashcard');
+            if (isFlipped) {
+                card.classList.add('flipped');
+            } else {
+                card.classList.remove('flipped');
+            }
+        }
+
+        function updateProgress() {
+            const total = flashcards.length;
+            const current = Math.min(currentCardIndex + 1, total);
+            const progressText = `${current}/${total}`;
+            document.getElementById('progressText').textContent = progressText;
+            document.getElementById('cardCounter').textContent = progressText;
+        }
+
+        function updateButtonStates() {
+            const total = flashcards.length;
+            document.getElementById('prevBtn').disabled = currentCardIndex === 0;
+            document.getElementById('nextBtn').disabled = currentCardIndex >= total - 1;
+        }
+
+        function disableNavigation() {
+            document.getElementById('prevBtn').disabled = true;
+            document.getElementById('nextBtn').disabled = true;
+        }
+
+        function showError(message) {
+            const contentArea = document.getElementById('contentArea');
+            contentArea.innerHTML = `<div class="status-message error-message">${message}</div>`;
+            disableNavigation();
+        }
+
+        // Event listeners
+        document.getElementById('prevBtn').addEventListener('click', () => {
+            if (currentCardIndex > 0) {
+                currentCardIndex--;
+                isFlipped = false;
+                renderFlashcard();
+            }
+        });
+
+        document.getElementById('nextBtn').addEventListener('click', () => {
+            if (currentCardIndex < flashcards.length - 1) {
+                currentCardIndex++;
+                isFlipped = false;
+                renderFlashcard();
+            }
+        });
+
+        document.getElementById('doneBtn').addEventListener('click', () => {
+            currentModuleId = null;
+            flashcards = [];
+            currentCardIndex = 0;
+            updateModuleUI();
+            document.getElementById('activeModuleName').textContent = 'Select a module';
+            document.getElementById('progressText').textContent = '0/0';
+            document.getElementById('contentArea').innerHTML = '<div class="status-message">Select a module to start studying flashcards.</div>';
+            disableNavigation();
+        });
+
+        document.getElementById('regenerateBtn').addEventListener('click', loadFlashcards);
+
+        document.getElementById('cardCountSelector').addEventListener('change', () => {
+            if (currentModuleId) {
+                loadFlashcards();
+            }
+        });
+
+        document.getElementById('infoBtn').addEventListener('click', () => {
+            const infoModal = document.getElementById('infoModal');
+            infoModal.classList.add('open');
+            infoModal.setAttribute('aria-hidden', 'false');
+        });
+
+        function closeInfoModal() {
+            const infoModal = document.getElementById('infoModal');
+            infoModal.classList.remove('open');
+            infoModal.setAttribute('aria-hidden', 'true');
+        }
+
+        document.getElementById('closeInfoBtn').addEventListener('click', closeInfoModal);
+        document.getElementById('infoModal').addEventListener('click', (event) => {
+            if (event.target.id === 'infoModal') {
+                closeInfoModal();
+            }
+        });
+
+        window.addEventListener('keydown', (event) => {
+            const infoModal = document.getElementById('infoModal');
+            if (event.key === 'Escape' && infoModal.classList.contains('open')) {
+                closeInfoModal();
+            }
+        });
+
+        document.getElementById('saveBtn').addEventListener('click', async () => {
+            if (!flashcards || flashcards.length === 0 || !currentModuleId) {
+                alert('No flashcards to save.');
+                return;
+            }
+
+            const module = modules.find(m => m.id === currentModuleId);
+            try {
+                const response = await fetch('/api/flashcards/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        module_title: module.title,
+                        source: 'flashcard-study',
+                        flashcards: flashcards,
+                    }),
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    alert(`Flashcards saved to: ${data.file}`);
+                } else {
+                    alert('Failed to save flashcards.');
+                }
+            } catch (error) {
+                console.error('Error saving flashcards:', error);
+                alert('Error saving flashcards. Check console.');
+            }
+        });
+
+        // Initialize on page load
+        window.addEventListener('DOMContentLoaded', init);
+    </script>
+</body>
+</html>
