@@ -17,6 +17,8 @@
     .option { border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; background: #fff; cursor: pointer; }
     .option:hover { background: #f1f5f9; }
     .correct { border-color: #16a34a; background: #dcfce7; }
+    .selected-ans { border-color: #2563eb; background: #eff6ff; font-weight: 700; color: #1d4ed8; }
+    .waiting-reveal { margin-top: 12px; padding: 10px; border-radius: 8px; background: #f1f5f9; color: #475569; font-style: italic; text-align: center; }
     .timer-wrap { margin-top: 10px; background: #e2e8f0; border-radius: 999px; overflow: hidden; height: 12px; }
     .timer-bar { height: 12px; width: 100%; background: #22c55e; transition: width 1s linear, background-color 0.8s linear; }
     .explanation { margin-top: 12px; border: 1px solid #dbe3ee; border-radius: 10px; padding: 10px; background: #f8fafc; }
@@ -58,6 +60,7 @@
 
     let currentQuestion = null;
     let revealed = false;
+    let submittedAnswer = false;
     let timerHandle = null;
     let myScore = 0;
     let myTotal = 0;
@@ -72,14 +75,21 @@
       nextBtn.classList.add('hidden');
       currentQuestion = null;
       revealed = false;
+      submittedAnswer = false;
       if (timerHandle) clearInterval(timerHandle);
     }
 
     function revealAnswer(question) {
       revealed = true;
       if (timerHandle) clearInterval(timerHandle);
+      
+      // Remove waiting message if present
+      const waitingMsg = optionsEl.parentNode.querySelector('.waiting-reveal');
+      if (waitingMsg) waitingMsg.remove();
+
       const nodes = optionsEl.querySelectorAll('.option');
       nodes.forEach((node, idx) => {
+        node.classList.remove('selected-ans');
         if (idx === Number(question.answer)) {
           node.classList.add('correct');
         }
@@ -90,8 +100,47 @@
       explanationEl.classList.remove('hidden');
       nextBtn.classList.remove('hidden');
       
-      // Submit answer and show feedback
+      // Submit answer (if not already submitted, e.g. timer expired) and show feedback
       submitAnswer(question);
+    }
+
+    function lockAnswer(idx, question) {
+      if (submittedAnswer || revealed) return;
+      submittedAnswer = true;
+      question._chosen = idx;
+
+      // Stop the timer
+      if (timerHandle) clearInterval(timerHandle);
+      timerText.textContent = 'Answer submitted';
+      timerBar.style.width = '0%';
+
+      // Highlight selected option and disable all
+      const nodes = optionsEl.querySelectorAll('.option');
+      nodes.forEach((node, i) => {
+        node.style.pointerEvents = 'none';
+        node.style.cursor = 'default';
+        if (i === idx) node.classList.add('selected-ans');
+      });
+
+      // Show waiting message
+      const waitDiv = document.createElement('div');
+      waitDiv.className = 'waiting-reveal';
+      waitDiv.textContent = 'Answer submitted — waiting for instructor to reveal...';
+      nextBtn.parentNode.insertBefore(waitDiv, nextBtn);
+
+      // Record answer silently (no feedback yet)
+      const qHash = question._hash || JSON.stringify(question);
+      fetch('/api/session/submit-answer', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ key, chosen: idx, question_hash: qHash }),
+      }).then(r => r.json()).then(data => {
+        if (data.score !== undefined) {
+          myScore = data.score;
+          myTotal = data.total;
+          scoreBadge.textContent = `Score: ${myScore} / ${myTotal}`;
+        }
+      }).catch(() => {});
     }
 
     async function submitAnswer(question) {
@@ -102,7 +151,7 @@
           headers: {'Content-Type': 'application/json'},
           body: JSON.stringify({
             key,
-            chosen: question._chosen !== undefined ? question._chosen : question.answer,
+            chosen: question._chosen !== undefined ? question._chosen : -1,
             question_hash: qHash,
           }),
         });
@@ -112,10 +161,13 @@
           myTotal = data.total;
           scoreBadge.textContent = `Score: ${myScore} / ${myTotal}`;
           
-          const feedbackDiv = document.createElement('div');
-          feedbackDiv.className = `feedback ${data.correct ? 'correct' : 'incorrect'}`;
-          feedbackDiv.textContent = data.correct ? '✓ Correct! +1' : '✗ Incorrect';
-          explanationEl.parentNode.insertBefore(feedbackDiv, nextBtn);
+          // Only show feedback if learner had submitted an answer before reveal
+          if (question._chosen !== undefined) {
+            const feedbackDiv = document.createElement('div');
+            feedbackDiv.className = `feedback ${data.correct ? 'correct' : 'incorrect'}`;
+            feedbackDiv.textContent = data.correct ? '\u2713 Correct! +1' : '\u2717 Incorrect';
+            explanationEl.parentNode.insertBefore(feedbackDiv, nextBtn);
+          }
         }
       } catch (e) {
       }
@@ -162,9 +214,8 @@
         div.className = 'option';
         div.textContent = opt;
         div.addEventListener('click', () => {
-          if (!revealed) {
-            question._chosen = idx;
-            revealAnswer(question);
+          if (!revealed && !submittedAnswer) {
+            lockAnswer(idx, question);
           }
         });
         optionsEl.appendChild(div);

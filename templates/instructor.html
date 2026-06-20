@@ -113,6 +113,8 @@
     const liveStatusEl = document.getElementById('liveStatus');
 
     let currentKey = '';
+    let currentPushedQuestion = null;
+    let previewRevealed = false;
 
     function renderModules() {
       moduleList.innerHTML = '';
@@ -175,7 +177,9 @@
         return;
       }
       liveStatusEl.textContent = 'Question pushed';
-      renderQuestionPreview(qData.questions[0]);
+      currentPushedQuestion = qData.questions[0];
+      previewRevealed = false;
+      renderQuestionPreview(currentPushedQuestion);
     }
 
     function renderQuestionPreview(question) {
@@ -189,12 +193,14 @@
       const correctIdx = Number(question.answer);
       (question.options || []).forEach((opt, idx) => {
         const div = document.createElement('div');
-        div.className = 'preview-option' + (idx === correctIdx ? ' correct-ans' : '');
-        div.textContent = (idx === correctIdx ? '✓ ' : '') + opt;
+        const isCorrect = previewRevealed && idx === correctIdx;
+        div.className = 'preview-option' + (isCorrect ? ' correct-ans' : '');
+        div.textContent = (isCorrect ? '\u2713 ' : '') + opt;
         optsEl.appendChild(div);
       });
-      expEl.textContent = question.explanation || '';
-      expEl.style.display = question.explanation ? 'block' : 'none';
+      expEl.textContent = previewRevealed ? (question.explanation || '') : '(Explanation hidden until revealed)';
+      expEl.style.display = 'block';
+      expEl.style.color = previewRevealed ? '' : '#94a3b8';
     }
 
     async function revealAnswer() {
@@ -205,6 +211,11 @@
         body: JSON.stringify({key: currentKey}),
       });
       liveStatusEl.textContent = 'Answer revealed';
+      // Now show the correct answer in the instructor preview
+      if (currentPushedQuestion) {
+        previewRevealed = true;
+        renderQuestionPreview(currentPushedQuestion);
+      }
     }
 
     async function nextQuestion() {
