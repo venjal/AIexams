@@ -59,6 +59,7 @@
     const scoreBadge = document.getElementById('scoreBadge');
 
     let currentQuestion = null;
+    let currentQuestionKey = null;   // raw JSON key for stable comparison
     let revealed = false;
     let submittedAnswer = false;
     let timerHandle = null;
@@ -74,6 +75,7 @@
       explanationEl.textContent = '';
       nextBtn.classList.add('hidden');
       currentQuestion = null;
+      currentQuestionKey = null;
       revealed = false;
       submittedAnswer = false;
       if (timerHandle) clearInterval(timerHandle);
@@ -81,8 +83,10 @@
 
     function revealAnswer(question) {
       revealed = true;
-      if (timerHandle) clearInterval(timerHandle);
-      
+      if (timerHandle) { clearInterval(timerHandle); timerHandle = null; }
+      timerText.textContent = '';
+      timerBar.style.width = '0%';
+
       // Remove waiting message if present
       const waitingMsg = optionsEl.parentNode.querySelector('.waiting-reveal');
       if (waitingMsg) waitingMsg.remove();
@@ -249,10 +253,11 @@
           return;
         }
 
-        const sameQuestion = currentQuestion && JSON.stringify(currentQuestion) === JSON.stringify(data.question);
+        const sameQuestion = currentQuestionKey === JSON.stringify(data.question);
         if (!sameQuestion) {
+          currentQuestionKey = JSON.stringify(data.question);
           currentQuestion = data.question;
-          currentQuestion._hash = JSON.stringify(data.question);
+          currentQuestion._hash = currentQuestionKey;
           renderQuestion(data.question, data.timer_seconds, data.answer_revealed);
           return;
         }
