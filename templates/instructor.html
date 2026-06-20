@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Instructor Dashboard</title>
+  <style>
+    body { margin: 0; font-family: Segoe UI, Arial, sans-serif; background: #f5f8fc; color: #0f172a; }
+    .wrap { max-width: 980px; margin: 24px auto; padding: 0 14px; }
+    .card { background: #fff; border: 1px solid #dbe3ee; border-radius: 12px; padding: 16px; margin-bottom: 14px; }
+    h1 { margin: 0 0 10px; font-size: 1.6rem; }
+    .controls { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+    .modules { max-height: 200px; overflow: auto; border: 1px solid #dbe3ee; border-radius: 8px; padding: 10px; }
+    .modules label { display: block; margin: 6px 0; }
+    select, button { border-radius: 8px; padding: 9px 11px; font-size: 0.95rem; }
+    select { border: 1px solid #cbd5e1; background: #fff; }
+    button { border: none; background: #2563eb; color: #fff; cursor: pointer; font-weight: 700; }
+    .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    .btn-secondary { background: #475569; }
+    .btn-danger { background: #b91c1c; }
+    .session-key { font-size: 2rem; font-weight: 800; letter-spacing: 3px; color: #1d4ed8; }
+    .muted { color: #64748b; }
+    .status { font-size: 0.95rem; margin-top: 8px; }
+    .top-actions { display: flex; justify-content: space-between; align-items: center; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div class="top-actions">
+        <h1>Instructor Dashboard</h1>
+        <form method="post" action="/instructor/logout">
+          <button class="btn-secondary" type="submit">Logout</button>
+        </form>
+      </div>
+      <div class="muted">Create a session, share key with learners, then push questions live.</div>
+    </div>
+
+    <div class="card">
+      <div class="controls">
+        <div>
+          <h3>Modules</h3>
+          <div class="modules" id="moduleList"></div>
+        </div>
+        <div>
+          <h3>Settings</h3>
+          <label>Question count</label>
+          <select id="questionCount">
+            <option value="5">5</option>
+            <option value="10">10</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+          </select>
+          <label style="display:block; margin-top:10px;">Timer (seconds)</label>
+          <select id="timerSeconds">
+            <option value="30">30</option>
+            <option value="45">45</option>
+            <option value="60" selected>60</option>
+            <option value="90">90</option>
+            <option value="120">120</option>
+          </select>
+          <div class="btn-row">
+            <button id="startBtn" type="button">Start New Session</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div>Session key</div>
+      <div id="sessionKey" class="session-key">-</div>
+      <div id="learnerCount" class="status">Learners: 0</div>
+      <div id="liveStatus" class="status muted">No active session</div>
+
+      <div class="btn-row">
+        <button id="pushBtn" type="button">Push Question</button>
+        <button id="revealBtn" class="btn-secondary" type="button">Reveal Answer</button>
+        <button id="nextBtn" class="btn-secondary" type="button">Next Question</button>
+        <button id="endBtn" class="btn-danger" type="button">End Session</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const modules = {{ modules | tojson }};
+    const moduleList = document.getElementById('moduleList');
+    const startBtn = document.getElementById('startBtn');
+    const pushBtn = document.getElementById('pushBtn');
+    const revealBtn = document.getElementById('revealBtn');
+    const nextBtn = document.getElementById('nextBtn');
+    const endBtn = document.getElementById('endBtn');
+    const sessionKeyEl = document.getElementById('sessionKey');
+    const learnerCountEl = document.getElementById('learnerCount');
+    const liveStatusEl = document.getElementById('liveStatus');
+
+    let currentKey = '';
+
+    function renderModules() {
+      moduleList.innerHTML = '';
+      modules.forEach((m, idx) => {
+        const id = `mod-${idx + 1}`;
+        const row = document.createElement('label');
+        row.innerHTML = `<input type="checkbox" value="${idx + 1}" checked id="${id}"> ${m.title}`;
+        moduleList.appendChild(row);
+      });
+    }
+
+    function selectedModuleIds() {
+      return Array.from(moduleList.querySelectorAll('input[type="checkbox"]:checked')).map(x => Number(x.value));
+    }
+
+    async function startSession() {
+      const payload = {
+        modules: selectedModuleIds(),
+        question_count: Number(document.getElementById('questionCount').value),
+        timer_seconds: Number(document.getElementById('timerSeconds').value),
+      };
+      const res = await fetch('/api/session/start', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify(payload),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        alert(data.error || 'Could not start session');
+        return;
+      }
+      currentKey = data.key;
+      sessionKeyEl.textContent = currentKey;
+      liveStatusEl.textContent = 'Session active';
+      await pollStatus();
+    }
+
+    async function pushQuestion() {
+      if (!currentKey) {
+        alert('Start a session first');
+        return;
+      }
+      const modules = selectedModuleIds();
+      const moduleId = modules.length ? modules[0] : 1;
+      const qRes = await fetch(`/api/quiz/questions/module?module_id=${moduleId}&count=1&fresh=true`);
+      const qData = await qRes.json();
+      if (!qRes.ok || !qData.questions || !qData.questions.length) {
+        alert('Could not generate a question');
+        return;
+      }
+      const pRes = await fetch('/api/session/push-question', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({key: currentKey, question: qData.questions[0]}),
+      });
+      const pData = await pRes.json();
+      if (!pRes.ok) {
+        alert(pData.error || 'Could not push question');
+        return;
+      }
+      liveStatusEl.textContent = 'Question pushed';
+    }
+
+    async function revealAnswer() {
+      if (!currentKey) return;
+      await fetch('/api/session/reveal', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({key: currentKey}),
+      });
+      liveStatusEl.textContent = 'Answer revealed';
+    }
+
+    async function nextQuestion() {
+      if (!currentKey) return;
+      await fetch('/api/session/next', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({key: currentKey}),
+      });
+      liveStatusEl.textContent = 'Waiting for next push';
+    }
+
+    async function endSession() {
+      if (!currentKey) return;
+      await fetch('/api/session/end', {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({key: currentKey}),
+      });
+      liveStatusEl.textContent = 'Session ended';
+      currentKey = '';
+      sessionKeyEl.textContent = '-';
+      learnerCountEl.textContent = 'Learners: 0';
+    }
+
+    async function pollStatus() {
+      if (!currentKey) {
+        return;
+      }
+      const res = await fetch(`/api/session/status?key=${encodeURIComponent(currentKey)}`);
+      const data = await res.json();
+      if (res.ok) {
+        learnerCountEl.textContent = `Learners: ${data.learner_count}`;
+      }
+    }
+
+    setInterval(pollStatus, 5000);
+    startBtn.addEventListener('click', startSession);
+    pushBtn.addEventListener('click', pushQuestion);
+    revealBtn.addEventListener('click', revealAnswer);
+    nextBtn.addEventListener('click', nextQuestion);
+    endBtn.addEventListener('click', endSession);
+    renderModules();
+  </script>
+</body>
+</html>

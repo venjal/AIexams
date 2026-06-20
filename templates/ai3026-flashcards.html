@@ -537,7 +537,6 @@
                         <option value="25">25 cards</option>
                     </select>
                     <button class="btn" id="regenerateBtn">Regenerate</button>
-                    <button class="btn" id="saveBtn">Save to File</button>
                     <button class="info-btn" id="infoBtn" type="button" aria-label="Flashcard information">&#8505;&#65039;</button>
                 </div>
             </div>
@@ -796,36 +795,6 @@
             const infoModal = document.getElementById('infoModal');
             if (event.key === 'Escape' && infoModal.classList.contains('open')) {
                 closeInfoModal();
-            }
-        });
-
-        document.getElementById('saveBtn').addEventListener('click', async () => {
-            if (!flashcards || flashcards.length === 0 || !currentModuleId) {
-                alert('No flashcards to save.');
-                return;
-            }
-
-            const module = modules.find(m => m.id === currentModuleId);
-            try {
-                const response = await fetch('/api/flashcards/save', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        module_title: module.title,
-                        source: 'flashcard-study',
-                        flashcards: flashcards,
-                    }),
-                });
-
-                if (response.ok) {
-                    const data = await response.json();
-                    alert(`Flashcards saved to: ${data.file}`);
-                } else {
-                    alert('Failed to save flashcards.');
-                }
-            } catch (error) {
-                console.error('Error saving flashcards:', error);
-                alert('Error saving flashcards. Check console.');
             }
         });
 

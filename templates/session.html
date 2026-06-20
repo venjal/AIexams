@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Live Session</title>
+  <style>
+    body { margin: 0; background: #f8fafc; color: #0f172a; font-family: Segoe UI, Arial, sans-serif; }
+    .wrap { max-width: 880px; margin: 20px auto; padding: 0 14px; }
+    .card { background: #fff; border: 1px solid #dbe3ee; border-radius: 12px; padding: 16px; }
+    .muted { color: #64748b; }
+    .key { font-weight: 700; color: #1d4ed8; }
+    .hidden { display: none; }
+    .question { margin-top: 10px; font-size: 1.15rem; font-weight: 700; }
+    .options { margin-top: 10px; display: grid; gap: 8px; }
+    .option { border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; background: #fff; }
+    .correct { border-color: #16a34a; background: #dcfce7; }
+    .timer-wrap { margin-top: 10px; background: #e2e8f0; border-radius: 999px; overflow: hidden; height: 12px; }
+    .timer-bar { height: 12px; width: 100%; background: #22c55e; transition: width 1s linear, background-color 0.8s linear; }
+    .explanation { margin-top: 12px; border: 1px solid #dbe3ee; border-radius: 10px; padding: 10px; background: #f8fafc; }
+    .next-btn { margin-top: 12px; border: none; border-radius: 8px; background: #2563eb; color: #fff; padding: 10px 12px; font-weight: 700; cursor: pointer; }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="card">
+      <div>Session key: <span class="key">{{ key }}</span></div>
+      <div id="waiting" class="muted" style="margin-top:10px;">Waiting for instructor...</div>
+
+      <div id="questionArea" class="hidden">
+        <div id="timerText" class="muted"></div>
+        <div class="timer-wrap"><div class="timer-bar" id="timerBar"></div></div>
+        <div class="question" id="questionText"></div>
+        <div class="options" id="options"></div>
+        <div id="explanation" class="explanation hidden"></div>
+        <button id="nextBtn" class="next-btn hidden" type="button">Next</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const key = {{ key | tojson }};
+    const waitingEl = document.getElementById('waiting');
+    const questionArea = document.getElementById('questionArea');
+    const questionText = document.getElementById('questionText');
+    const optionsEl = document.getElementById('options');
+    const timerBar = document.getElementById('timerBar');
+    const timerText = document.getElementById('timerText');
+    const explanationEl = document.getElementById('explanation');
+    const nextBtn = document.getElementById('nextBtn');
+
+    let currentQuestion = null;
+    let revealed = false;
+    let timerHandle = null;
+
+    function showWaiting() {
+      waitingEl.classList.remove('hidden');
+      questionArea.classList.add('hidden');
+      questionText.textContent = '';
+      optionsEl.innerHTML = '';
+      explanationEl.classList.add('hidden');
+      explanationEl.textContent = '';
+      nextBtn.classList.add('hidden');
+      currentQuestion = null;
+      revealed = false;
+      if (timerHandle) clearInterval(timerHandle);
+    }
+
+    function revealAnswer(question) {
+      revealed = true;
+      const nodes = optionsEl.querySelectorAll('.option');
+      nodes.forEach((node, idx) => {
+        if (idx === Number(question.answer)) {
+          node.classList.add('correct');
+        }
+      });
+      explanationEl.textContent = question.explanation || '';
+      explanationEl.classList.remove('hidden');
+      nextBtn.classList.remove('hidden');
+    }
+
+    function startTimer(seconds, question) {
+      let remaining = seconds;
+      timerBar.style.width = '100%';
+      timerBar.style.background = '#22c55e';
+      timerText.textContent = `Time left: ${remaining}s`;
+
+      if (timerHandle) clearInterval(timerHandle);
+      timerHandle = setInterval(() => {
+        remaining -= 1;
+        const pct = Math.max(0, (remaining / seconds) * 100);
+        timerBar.style.width = `${pct}%`;
+        if (pct <= 30) {
+          timerBar.style.background = '#ef4444';
+        } else if (pct <= 60) {
+          timerBar.style.background = '#f59e0b';
+        }
+        timerText.textContent = `Time left: ${Math.max(0, remaining)}s`;
+        if (remaining <= 0) {
+          clearInterval(timerHandle);
+          if (!revealed) {
+            revealAnswer(question);
+          }
+        }
+      }, 1000);
+    }
+
+    function renderQuestion(question, timerSeconds, answerRevealed) {
+      waitingEl.classList.add('hidden');
+      questionArea.classList.remove('hidden');
+      questionText.textContent = question.question || '';
+      optionsEl.innerHTML = '';
+      explanationEl.classList.add('hidden');
+      explanationEl.textContent = '';
+      nextBtn.classList.add('hidden');
+      revealed = false;
+
+      (question.options || []).forEach((opt) => {
+        const div = document.createElement('div');
+        div.className = 'option';
+        div.textContent = opt;
+        optionsEl.appendChild(div);
+      });
+
+      startTimer(Number(timerSeconds || 60), question);
+      if (answerRevealed) {
+        revealAnswer(question);
+      }
+    }
+
+    async function pollQuestion() {
+      try {
+        const res = await fetch(`/api/session/current-question?key=${encodeURIComponent(key)}`);
+        const data = await res.json();
+        if (!res.ok || !data.active) {
+          showWaiting();
+          return;
+        }
+
+        if (!data.question) {
+          showWaiting();
+          return;
+        }
+
+        const sameQuestion = currentQuestion && JSON.stringify(currentQuestion) === JSON.stringify(data.question);
+        if (!sameQuestion) {
+          currentQuestion = data.question;
+          renderQuestion(data.question, data.timer_seconds, data.answer_revealed);
+          return;
+        }
+
+        if (data.answer_revealed && !revealed) {
+          revealAnswer(currentQuestion);
+        }
+      } catch (e) {
+        showWaiting();
+      }
+    }
+
+    nextBtn.addEventListener('click', async () => {
+      try {
+        await fetch('/api/session/next', {
+          method: 'POST',
+          headers: {'Content-Type': 'application/json'},
+          body: JSON.stringify({key}),
+        });
+      } catch (e) {
+      }
+      showWaiting();
+    });
+
+    showWaiting();
+    pollQuestion();
+    setInterval(pollQuestion, 3000);
+  </script>
+</body>
+</html>

@@ -12,13 +12,14 @@ in the backend, where users can't see them.
 import os
 import json
 import random
+import string
 import uuid
 import hashlib
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Dict, Optional
 
-from flask import Flask, jsonify, request, render_template, make_response
+from flask import Flask, jsonify, request, render_template, make_response, redirect
 
 try:
     from dotenv import load_dotenv
@@ -39,6 +40,8 @@ load_dotenv()
 PROJECT_ENDPOINT = os.getenv("PROJECT_ENDPOINT")
 AGENT_NAME = os.getenv("AGENT_NAME")
 AGENT_ID = os.getenv("AGENT_ID")
+INSTRUCTOR_PASSWORD = os.getenv("INSTRUCTOR_PASSWORD", "changeme123")
+SESSION_MAX_HOURS = int(os.getenv("SESSION_MAX_HOURS", "3"))
 
 FOUNDRY_ENABLED = bool(PROJECT_ENDPOINT and (AGENT_NAME or AGENT_ID))
 
@@ -71,7 +74,11 @@ def get_openai_client():
 app = Flask(__name__, template_folder='templates')
 
 # Keep conversations in memory by browser session ID so tabs/users don't collide.
-state: Dict[str, Dict[str, str]] = {"conversations": {}, "used_questions": {}}
+state: Dict[str, Dict] = {
+    "conversations": {},
+    "used_questions": {},
+    "live_sessions": {},
+}
 SESSION_COOKIE = "agent_chat_session"
 
 
@@ -88,6 +95,28 @@ def get_conversation_id(session_id: str) -> str:
         conversation = client.conversations.create()
         conversations[session_id] = conversation.id
     return conversations[session_id]
+
+
+def generate_session_key() -> str:
+    """Generate a random 6-character uppercase alphanumeric session key."""
+    return ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+
+
+def is_valid_session(key: str) -> bool:
+    """Return True if the session key exists, is active, and has not expired."""
+    session = state["live_sessions"].get(key)
+    if not session or not session.get("active"):
+        return False
+    age = datetime.now() - session["created_at"]
+    if age > timedelta(hours=SESSION_MAX_HOURS):
+        session["active"] = False
+        return False
+    return True
+
+
+def check_instructor_auth(incoming_request) -> bool:
+    """Return True if the request cookie contains a valid instructor token."""
+    return incoming_request.cookies.get("instructor_auth") == hashlib.sha256(INSTRUCTOR_PASSWORD.encode()).hexdigest()
 
 
 def build_agent_reference() -> dict:
@@ -583,26 +612,81 @@ def _attach_learn_links_to_questions(questions: list, learn_url: str) -> list:
 
 @app.route("/")
 def home():
-    """Serve the chat webpage (index.html) when you open http://localhost:8000 ."""
-    return render_template("index.html")
+    """Landing page - learner enters session key, instructor clicks login."""
+    return render_template("landing.html")
+
+
+@app.route("/join", methods=["POST"])
+def join_session():
+    """Validate a learner's session key and redirect to the quiz view."""
+    key = request.form.get("key", "").strip().upper()
+    if not key or not is_valid_session(key):
+        return render_template("landing.html", error="Invalid or expired session key. Ask your instructor for the current key.")
+    res = make_response(redirect("/session"))
+    res.set_cookie("learner_session_key", key, httponly=True, samesite="Lax")
+    return res
+
+
+@app.route("/session")
+def session_view():
+    """Learner quiz view - only accessible with a valid session key cookie."""
+    key = request.cookies.get("learner_session_key", "")
+    if not is_valid_session(key):
+        return redirect("/")
+    session = state["live_sessions"][key]
+    return render_template("session.html", session=session, key=key)
 
 
 @app.route("/quiz")
 def quiz_page():
     """Serve the easy AI3026 objective quiz page."""
+    if not check_instructor_auth(request) and not is_valid_session(request.cookies.get("learner_session_key", "")):
+        return redirect("/")
     return render_template("ai3026-quiz.html")
 
 
 @app.route("/quiz-modules")
 def quiz_modules_page():
     """Serve the module-based AI3026 quiz page."""
+    if not check_instructor_auth(request) and not is_valid_session(request.cookies.get("learner_session_key", "")):
+        return redirect("/")
     return render_template("ai3026-modules-quiz.html")
 
 
 @app.route("/flashcards")
 def flashcards_page():
     """Serve the module-based flashcards page."""
+    if not check_instructor_auth(request) and not is_valid_session(request.cookies.get("learner_session_key", "")):
+        return redirect("/")
     return render_template("ai3026-flashcards.html")
+
+
+@app.route("/instructor", methods=["GET"])
+def instructor_page():
+    """Instructor dashboard - password protected."""
+    if not check_instructor_auth(request):
+        return render_template("instructor_login.html")
+    sessions = {k: v for k, v in state["live_sessions"].items() if v.get("active")}
+    return render_template("instructor.html", sessions=sessions, modules=AI103_MODULES)
+
+
+@app.route("/instructor/login", methods=["POST"])
+def instructor_login():
+    """Validate instructor password and set auth cookie."""
+    password = request.form.get("password", "")
+    if password != INSTRUCTOR_PASSWORD:
+        return render_template("instructor_login.html", error="Incorrect password.")
+    token = hashlib.sha256(INSTRUCTOR_PASSWORD.encode()).hexdigest()
+    res = make_response(redirect("/instructor"))
+    res.set_cookie("instructor_auth", token, httponly=True, samesite="Lax")
+    return res
+
+
+@app.route("/instructor/logout", methods=["POST"])
+def instructor_logout():
+    res = make_response(redirect("/"))
+    res.delete_cookie("instructor_auth")
+    return res
 
 
 @app.route("/api/quiz/modules", methods=["GET"])
@@ -803,6 +887,9 @@ def quiz_questions():
 @app.route("/api/quiz/save", methods=["POST"])
 def save_quiz_results():
     """Save quiz questions and answers to a text file."""
+    if not check_instructor_auth(request):
+        return jsonify({"error": "unauthorized"}), 403
+
     data = request.get_json() or {}
 
     questions = data.get("questions", [])
@@ -951,6 +1038,9 @@ def flashcards_by_module():
 @app.route("/api/flashcards/save", methods=["POST"])
 def save_flashcards():
     """Save flashcards to a text file."""
+    if not check_instructor_auth(request):
+        return jsonify({"error": "unauthorized"}), 403
+
     data = request.get_json() or {}
 
     flashcards = data.get("flashcards", [])
@@ -992,6 +1082,139 @@ def save_flashcards():
         "status": "ok",
         "file": str(file_path),
         "total": len([c for c in flashcards if c.get("front") and c.get("back")]),
+    })
+
+
+@app.route("/api/session/start", methods=["POST"])
+def start_session():
+    """Create a new live session. Instructor only."""
+    if not check_instructor_auth(request):
+        return jsonify({"error": "unauthorized"}), 403
+
+    data = request.get_json() or {}
+    key = generate_session_key()
+    while key in state["live_sessions"]:
+        key = generate_session_key()
+
+    modules = data.get("modules", [1])
+    if not isinstance(modules, list) or not modules:
+        modules = [1]
+
+    state["live_sessions"][key] = {
+        "active": True,
+        "modules": modules,
+        "question_count": int(data.get("question_count", 5)),
+        "timer_seconds": int(data.get("timer_seconds", 60)),
+        "current_question": None,
+        "current_question_pushed_at": None,
+        "answer_revealed": False,
+        "learners": set(),
+        "created_at": datetime.now(),
+    }
+    return jsonify({"key": key})
+
+
+@app.route("/api/session/end", methods=["POST"])
+def end_session():
+    """End an active session. Instructor only."""
+    if not check_instructor_auth(request):
+        return jsonify({"error": "unauthorized"}), 403
+
+    key = (request.get_json() or {}).get("key", "")
+    session = state["live_sessions"].get(key)
+    if session:
+        session["active"] = False
+    return jsonify({"status": "ended"})
+
+
+@app.route("/api/session/push-question", methods=["POST"])
+def push_question():
+    """Push a question to all learners in a session. Instructor only."""
+    if not check_instructor_auth(request):
+        return jsonify({"error": "unauthorized"}), 403
+
+    data = request.get_json() or {}
+    key = data.get("key", "")
+    question = data.get("question")
+    session = state["live_sessions"].get(key)
+    if not session or not session["active"]:
+        return jsonify({"error": "session not found"}), 404
+
+    session["current_question"] = question
+    session["current_question_pushed_at"] = datetime.now().isoformat()
+    session["answer_revealed"] = False
+    return jsonify({"status": "pushed"})
+
+
+@app.route("/api/session/reveal", methods=["POST"])
+def reveal_answer():
+    """Reveal the answer for the current question. Instructor only."""
+    if not check_instructor_auth(request):
+        return jsonify({"error": "unauthorized"}), 403
+
+    key = (request.get_json() or {}).get("key", "")
+    session = state["live_sessions"].get(key)
+    if session:
+        session["answer_revealed"] = True
+    return jsonify({"status": "revealed"})
+
+
+@app.route("/api/session/next", methods=["POST"])
+def next_question():
+    """Clear current question and move learners back to waiting."""
+    payload = request.get_json() or {}
+    key = payload.get("key", "") or request.cookies.get("learner_session_key", "")
+
+    if not check_instructor_auth(request):
+        learner_key = request.cookies.get("learner_session_key", "")
+        if not learner_key or learner_key != key or not is_valid_session(learner_key):
+            return jsonify({"error": "unauthorized"}), 403
+
+    session = state["live_sessions"].get(key)
+    if not session or not session.get("active"):
+        return jsonify({"error": "session not found"}), 404
+
+    session["current_question"] = None
+    session["current_question_pushed_at"] = None
+    session["answer_revealed"] = False
+    return jsonify({"status": "next"})
+
+
+@app.route("/api/session/current-question", methods=["GET"])
+def current_question():
+    """Learners poll this to get the current question for their session."""
+    key = request.args.get("key") or request.cookies.get("learner_session_key", "")
+    if not is_valid_session(key):
+        return jsonify({"error": "invalid session"}), 403
+
+    session = state["live_sessions"][key]
+    session_id = request.cookies.get(SESSION_COOKIE, str(uuid.uuid4()))
+    session.setdefault("learners", set()).add(session_id)
+
+    return jsonify({
+        "question": session.get("current_question"),
+        "pushed_at": session.get("current_question_pushed_at"),
+        "answer_revealed": session.get("answer_revealed", False),
+        "timer_seconds": session.get("timer_seconds", 60),
+        "active": session.get("active", False),
+    })
+
+
+@app.route("/api/session/status", methods=["GET"])
+def session_status():
+    """Instructor polls this for live stats."""
+    if not check_instructor_auth(request):
+        return jsonify({"error": "unauthorized"}), 403
+
+    key = request.args.get("key", "")
+    session = state["live_sessions"].get(key)
+    if not session:
+        return jsonify({"error": "not found"}), 404
+
+    return jsonify({
+        "active": session.get("active"),
+        "learner_count": len(session.get("learners", set())),
+        "key": key,
     })
 
 

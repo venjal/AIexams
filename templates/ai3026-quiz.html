@@ -1,430 +1,101 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>AI3026 Quiz</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      margin: 0;
-      padding: 0;
-      background: linear-gradient(135deg, #e9f2ff, #f7f9fc);
-      color: #222;
-    }
-
-    .container {
-      max-width: 850px;
-      margin: 40px auto;
-      background: white;
-      padding: 30px;
-      border-radius: 18px;
-      box-shadow: 0 8px 24px rgba(0,0,0,0.12);
-    }
-
-    h1 {
-      text-align: center;
-      margin-bottom: 20px;
-      color: #0f172a;
-    }
-
-    .title-row {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 10px;
-      margin-bottom: 20px;
-    }
-
-    .title-row h1 {
-      margin: 0;
-      flex: 1;
-      text-align: center;
-    }
-
-    .title-spacer {
-      width: 38px;
-      height: 38px;
-      flex-shrink: 0;
-    }
-
-    .info-btn {
-      width: 38px;
-      height: 38px;
-      border-radius: 999px;
-      border: 1px solid #cbd5e1;
-      background: #ffffff;
-      color: #0f172a;
-      cursor: pointer;
-      font-size: 1rem;
-      font-weight: 700;
-      line-height: 1;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-    }
-
-    .info-btn:hover {
-      background: #eff6ff;
-      border-color: #3b82f6;
-    }
-
-    .info-modal {
-      position: fixed;
-      inset: 0;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      background: rgba(15, 23, 42, 0.45);
-      z-index: 1000;
-      padding: 20px;
-    }
-
-    .info-modal.open {
-      display: flex;
-    }
-
-    .info-card {
-      width: 100%;
-      max-width: 360px;
-      background: #ffffff;
-      border-radius: 14px;
-      border: 1px solid #dbe3ee;
-      padding: 16px;
-      box-shadow: 0 10px 30px rgba(15, 23, 42, 0.2);
-      position: relative;
-    }
-
-    .info-card h3 {
-      margin: 0 0 10px;
-      color: #0f172a;
-      font-size: 1.05rem;
-    }
-
-    .info-card p {
-      margin: 8px 0;
-      color: #334155;
-      font-size: 0.96rem;
-    }
-
-    .info-close {
-      position: absolute;
-      right: 10px;
-      top: 10px;
-      border: none;
-      background: transparent;
-      color: #475569;
-      cursor: pointer;
-      font-size: 1.1rem;
-      line-height: 1;
-    }
-
-    .footer-note {
-      position: fixed;
-      right: 12px;
-      bottom: 8px;
-      font-size: 0.72rem;
-      color: #64748b;
-      background: rgba(255, 255, 255, 0.85);
-      border-radius: 999px;
-      padding: 2px 8px;
-      backdrop-filter: blur(2px);
-    }
-
-    .topbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
-      flex-wrap: wrap;
-      gap: 10px;
-    }
-
-    .controls {
-      display: flex;
-      gap: 8px;
-      align-items: center;
-      flex-wrap: wrap;
-    }
-
-    .controls select,
-    .controls button {
-      border: 1px solid #cbd5e1;
-      border-radius: 8px;
-      padding: 8px 10px;
-      background: #fff;
-      font-weight: 600;
-      color: #0f172a;
-    }
-
-    .controls button {
-      cursor: pointer;
-      background: #2563eb;
-      color: #fff;
-      border: none;
-    }
-
-    .score-box, .progress-box {
-      background: #f1f5f9;
-      padding: 10px 14px;
-      border-radius: 10px;
-      font-weight: bold;
-    }
-
-    .question-card {
-      border: 1px solid #dbe3ee;
-      background: #fbfdff;
-      border-radius: 14px;
-      padding: 22px;
-      margin-bottom: 18px;
-    }
-
-    .question {
-      font-size: 1.1rem;
-      font-weight: bold;
-      margin-bottom: 15px;
-    }
-
-    .options button {
-      display: block;
-      width: 100%;
-      text-align: left;
-      padding: 12px 15px;
-      margin: 8px 0;
-      border: 1px solid #cbd5e1;
-      border-radius: 10px;
-      background: white;
-      cursor: pointer;
-      transition: 0.2s;
-      font-size: 1rem;
-    }
-
-    .options button:hover:not(:disabled) {
-      background: #eef6ff;
-      transform: translateY(-1px);
-    }
-
-    .options button:disabled {
-      cursor: not-allowed;
-      opacity: 0.95;
-    }
-
-    .correct {
-      background: #d1fae5 !important;
-      border-color: #10b981 !important;
-      color: #065f46;
-    }
-
-    .wrong {
-      background: #fee2e2 !important;
-      border-color: #ef4444 !important;
-      color: #991b1b;
-    }
-
-    .feedback {
-      margin-top: 12px;
-      font-weight: bold;
-      font-size: 1rem;
-    }
-
-    .nav-buttons {
-      display: flex;
-      justify-content: space-between;
-      gap: 12px;
-      margin-top: 18px;
-      flex-wrap: wrap;
-    }
-
-    .nav-buttons button, .restart-btn {
-      padding: 12px 18px;
-      border: none;
-      border-radius: 10px;
-      cursor: pointer;
-      font-weight: bold;
-      font-size: 1rem;
-    }
-
-    .nav-buttons button {
-      background: #2563eb;
-      color: white;
-    }
-
-    .nav-buttons button:disabled {
-      background: #94a3b8;
-      cursor: not-allowed;
-    }
-
-    .restart-btn {
-      background: #16a34a;
-      color: white;
-      margin-top: 20px;
-    }
-
-    .result-box {
-      text-align: center;
-      padding: 30px 20px;
-    }
-
-    .result-box h2 {
-      margin-bottom: 10px;
-    }
-
-    .hidden {
-      display: none;
-    }
-
-    .quiz-area {
-      display: block;
-    }
+    body { margin: 0; font-family: Segoe UI, Arial, sans-serif; background: linear-gradient(135deg,#e9f2ff,#f7f9fc); color:#0f172a; }
+    .container { max-width: 840px; margin: 36px auto; background:#fff; border:1px solid #dbe3ee; border-radius:16px; box-shadow:0 10px 24px rgba(2,6,23,.1); padding:24px; }
+    .title-row { display:flex; align-items:center; justify-content:space-between; margin-bottom:16px; }
+    .title-row h1 { margin:0; flex:1; text-align:center; }
+    .title-spacer { width:38px; height:38px; }
+    .info-btn { width:38px; height:38px; border-radius:999px; border:1px solid #cbd5e1; background:#fff; font-weight:700; cursor:pointer; }
+    .topbar { display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:16px; }
+    .pill { background:#f1f5f9; border-radius:10px; padding:10px 12px; font-weight:700; }
+    .question-card { border:1px solid #dbe3ee; border-radius:12px; background:#fbfdff; padding:18px; }
+    .question { font-size:1.08rem; font-weight:700; margin-bottom:12px; }
+    .options button { width:100%; text-align:left; margin:7px 0; padding:11px 12px; border:1px solid #cbd5e1; border-radius:10px; background:#fff; cursor:pointer; }
+    .options button:disabled { opacity:.96; cursor:not-allowed; }
+    .correct { background:#dcfce7 !important; border-color:#16a34a !important; }
+    .wrong { background:#fee2e2 !important; border-color:#dc2626 !important; }
+    .feedback { margin-top:10px; font-weight:700; }
+    .nav { display:flex; justify-content:space-between; margin-top:14px; gap:10px; }
+    .nav button, .restart { border:none; border-radius:10px; padding:10px 14px; font-weight:700; cursor:pointer; color:#fff; background:#2563eb; }
+    .nav button:disabled { background:#94a3b8; cursor:not-allowed; }
+    .hidden { display:none; }
+    .result { text-align:center; padding:22px; }
+    .info-modal { position:fixed; inset:0; display:none; align-items:center; justify-content:center; background:rgba(15,23,42,.45); }
+    .info-modal.open { display:flex; }
+    .info-card { width:min(360px,92vw); background:#fff; border:1px solid #dbe3ee; border-radius:12px; padding:14px; position:relative; }
+    .info-close { position:absolute; top:10px; right:10px; border:none; background:transparent; cursor:pointer; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="title-row">
-      <div class="title-spacer" aria-hidden="true"></div>
+      <div class="title-spacer"></div>
       <h1>AI3026 Objective Quiz</h1>
-      <button class="info-btn" id="infoBtn" type="button" aria-label="Quiz information">&#8505;&#65039;</button>
+      <button class="info-btn" id="infoBtn" type="button" aria-label="Quiz information">i</button>
     </div>
 
     <div class="topbar">
-      <div class="score-box">Score: <span id="score">0</span> / <span id="total">15</span></div>
-      <div class="progress-box">Question <span id="currentNum">1</span> of <span id="total2">15</span></div>
-      <div class="controls">
-        <select id="moduleSelect" title="Select module"></select>
-        <select id="questionCount" title="Number of questions">
-          <option value="5" selected>5 questions</option>
-          <option value="10">10 questions</option>
-        </select>
-        <button id="regenBtn" type="button">New Questions</button>
-      </div>
+      <div class="pill">Score: <span id="score">0</span> / <span id="total">5</span></div>
+      <div class="pill">Question <span id="currentNum">1</span> of <span id="total2">5</span></div>
     </div>
 
-    <div id="quizArea" class="quiz-area">
+    <div id="quizArea">
       <div id="quiz"></div>
-
-      <div class="nav-buttons">
-        <button id="prevBtn">Previous</button>
-        <button id="nextBtn">Next</button>
+      <div class="nav">
+        <button id="prevBtn" type="button">Previous</button>
+        <button id="nextBtn" type="button">Next</button>
       </div>
     </div>
 
-    <div id="resultArea" class="result-box hidden">
-      <h2>Quiz Completed!</h2>
+    <div id="resultArea" class="result hidden">
+      <h2>Quiz Completed</h2>
       <p id="finalScore"></p>
-      <button class="restart-btn" onclick="restartQuiz()">Restart Quiz</button>
+      <button class="restart" id="restartBtn" type="button">Restart Quiz</button>
     </div>
   </div>
 
   <div class="info-modal" id="infoModal" aria-hidden="true">
     <div class="info-card" role="dialog" aria-modal="true" aria-label="Creator information">
-      <button class="info-close" id="closeInfoBtn" type="button" aria-label="Close information">x</button>
+      <button class="info-close" id="closeInfoBtn" type="button">x</button>
       <h3>Page Info</h3>
       <p><strong>Creator name:</strong> Venkat Jalasutram</p>
       <p><strong>Version:</strong> 1.0</p>
     </div>
   </div>
 
-  <div class="footer-note">Created by venkat jalasutram</div>
-
   <script>
-    let modules = [];
-    let selectedModuleId = null;
+    const quizContainer = document.getElementById('quiz');
+    const scoreElement = document.getElementById('score');
+    const currentNum = document.getElementById('currentNum');
+    const totalEl = document.getElementById('total');
+    const total2El = document.getElementById('total2');
+    const quizArea = document.getElementById('quizArea');
+    const resultArea = document.getElementById('resultArea');
+    const finalScore = document.getElementById('finalScore');
+    const prevBtn = document.getElementById('prevBtn');
+    const nextBtn = document.getElementById('nextBtn');
+
     let questions = [];
-
-    const quizContainer = document.getElementById("quiz");
-    const scoreElement = document.getElementById("score");
-    const currentNum = document.getElementById("currentNum");
-    const totalEl = document.getElementById("total");
-    const total2El = document.getElementById("total2");
-    const quizArea = document.getElementById("quizArea");
-    const resultArea = document.getElementById("resultArea");
-    const finalScore = document.getElementById("finalScore");
-    const prevBtn = document.getElementById("prevBtn");
-    const nextBtn = document.getElementById("nextBtn");
-    const moduleSelect = document.getElementById("moduleSelect");
-    const questionCount = document.getElementById("questionCount");
-    const regenBtn = document.getElementById("regenBtn");
-    const infoBtn = document.getElementById("infoBtn");
-    const infoModal = document.getElementById("infoModal");
-    const closeInfoBtn = document.getElementById("closeInfoBtn");
-
     let currentQuestion = 0;
-    let score = 0;
     let answers = [];
 
-    function getApiBaseUrl() {
-      if (window.location.protocol === "file:") {
-        return "http://127.0.0.1:8000";
-      }
-      return "";
-    }
-
-    function getQuestionCount() {
-      const parsed = Number(questionCount.value);
-      if (!Number.isFinite(parsed)) return 5;
-      return Math.max(1, Math.min(10, Math.trunc(parsed)));
-    }
-
-    async function loadModules() {
+    async function loadQuestions() {
+      quizContainer.innerHTML = '<div class="question-card">Loading questions...</div>';
       try {
-        const res = await fetch(`${getApiBaseUrl()}/api/quiz/modules`);
+        const res = await fetch('/api/quiz/questions?count=5&fresh=true');
         const data = await res.json();
-        modules = data.modules || [];
-      } catch (error) {
-        modules = [];
-      }
-
-      moduleSelect.innerHTML = "";
-      modules.forEach((module) => {
-        const opt = document.createElement("option");
-        opt.value = String(module.id);
-        opt.textContent = `Module ${module.id}`;
-        opt.title = module.title;
-        moduleSelect.appendChild(opt);
-      });
-
-      if (!modules.length) {
-        quizContainer.innerHTML = '<div class="question-card">Could not load modules.</div>';
-        prevBtn.disabled = true;
-        nextBtn.disabled = true;
-        regenBtn.disabled = true;
-        moduleSelect.disabled = true;
-        return;
-      }
-
-      selectedModuleId = modules[0].id;
-      moduleSelect.value = String(selectedModuleId);
-      regenBtn.disabled = false;
-      await loadQuestions(true);
-    }
-
-    async function loadQuestions(fresh) {
-      if (!selectedModuleId) return;
-
-      quizArea.classList.remove("hidden");
-      resultArea.classList.add("hidden");
-      quizContainer.innerHTML = '<div class="question-card">Loading module questions...</div>';
-
-      try {
-        const apiUrl = `${getApiBaseUrl()}/api/quiz/questions/module/easy?module_id=${selectedModuleId}&count=${getQuestionCount()}&fresh=${fresh ? "true" : "false"}`;
-        const res = await fetch(apiUrl);
-        if (!res.ok) {
-          throw new Error(`Request failed with status ${res.status}`);
-        }
-        const data = await res.json();
-        questions = (data.questions || []).map((q) => ({
-          ...q,
-          answer: Number(q.answer),
-        }));
-      } catch (error) {
+        questions = (data.questions || []).map((q) => ({...q, answer: Number(q.answer)}));
+      } catch (e) {
         questions = [];
       }
 
       if (!questions.length) {
-        const hint = window.location.protocol === "file:"
-          ? " Start the backend and open http://127.0.0.1:8000/quiz ."
-          : " Check that the backend is running.";
-        quizContainer.innerHTML = `<div class="question-card">Could not load questions for this module.${hint}</div>`;
+        quizContainer.innerHTML = '<div class="question-card">Could not load quiz questions.</div>';
         prevBtn.disabled = true;
         nextBtn.disabled = true;
         return;
@@ -433,166 +104,92 @@
       totalEl.textContent = questions.length;
       total2El.textContent = questions.length;
       currentQuestion = 0;
-      score = 0;
       answers = new Array(questions.length).fill(null);
-      scoreElement.textContent = score;
-      prevBtn.disabled = false;
-      nextBtn.disabled = true;
+      scoreElement.textContent = '0';
+      quizArea.classList.remove('hidden');
+      resultArea.classList.add('hidden');
       renderQuestion();
     }
 
     function renderQuestion() {
       const q = questions[currentQuestion];
       currentNum.textContent = currentQuestion + 1;
-      quizContainer.innerHTML = "";
+      const selected = answers[currentQuestion];
 
-      const card = document.createElement("div");
-      card.className = "question-card";
+      const card = document.createElement('div');
+      card.className = 'question-card';
+      const qText = document.createElement('div');
+      qText.className = 'question';
+      qText.textContent = q.question;
+      card.appendChild(qText);
 
-      const questionText = document.createElement("div");
-      questionText.className = "question";
-      questionText.textContent = q.question;
-
-      const optionsDiv = document.createElement("div");
-      optionsDiv.className = "options";
-
-      const feedback = document.createElement("div");
-      feedback.className = "feedback";
+      const optionsDiv = document.createElement('div');
+      optionsDiv.className = 'options';
+      const feedback = document.createElement('div');
+      feedback.className = 'feedback';
 
       q.options.forEach((option, i) => {
-        const btn = document.createElement("button");
+        const btn = document.createElement('button');
         btn.textContent = option;
-
-        if (answers[currentQuestion] !== null) {
+        if (selected !== null) {
           btn.disabled = true;
-          if (i === q.answer) btn.classList.add("correct");
-          if (answers[currentQuestion] === i && i !== q.answer) btn.classList.add("wrong");
-          feedback.textContent = answers[currentQuestion] === q.answer
-            ? "Correct!"
-            : "Wrong! Correct answer: " + q.options[q.answer];
-          feedback.style.color = answers[currentQuestion] === q.answer ? "green" : "red";
-          nextBtn.disabled = false;
+          if (i === q.answer) btn.classList.add('correct');
+          if (selected === i && i !== q.answer) btn.classList.add('wrong');
         }
-
-        btn.onclick = function () {
+        btn.onclick = () => {
           if (answers[currentQuestion] !== null) return;
-
           answers[currentQuestion] = i;
-          const allButtons = optionsDiv.querySelectorAll("button");
-          allButtons.forEach((b) => {
-            b.disabled = true;
-          });
-
-          if (i === q.answer) {
-            btn.classList.add("correct");
-            feedback.textContent = "Correct!";
-            feedback.style.color = "green";
-          } else {
-            btn.classList.add("wrong");
-            feedback.textContent = "Wrong! Correct answer: " + q.options[q.answer];
-            feedback.style.color = "red";
-            allButtons[q.answer].classList.add("correct");
-          }
-
-          nextBtn.disabled = false;
+          renderQuestion();
         };
-
         optionsDiv.appendChild(btn);
       });
 
-      card.appendChild(questionText);
+      if (selected !== null) {
+        feedback.textContent = selected === q.answer ? 'Correct!' : `Wrong! Correct answer: ${q.options[q.answer]}`;
+        feedback.style.color = selected === q.answer ? '#166534' : '#991b1b';
+      }
+
       card.appendChild(optionsDiv);
       card.appendChild(feedback);
+      quizContainer.innerHTML = '';
       quizContainer.appendChild(card);
 
       prevBtn.disabled = currentQuestion === 0;
-      nextBtn.textContent = currentQuestion === questions.length - 1 ? "Finish" : "Next";
+      nextBtn.textContent = currentQuestion === questions.length - 1 ? 'Finish' : 'Next';
       nextBtn.disabled = answers[currentQuestion] === null;
     }
 
-    prevBtn.onclick = function () {
+    prevBtn.onclick = () => {
       if (currentQuestion > 0) {
         currentQuestion -= 1;
         renderQuestion();
       }
     };
 
-    nextBtn.onclick = function () {
-      if (answers[currentQuestion] === null) {
-        return;
-      }
-
+    nextBtn.onclick = () => {
+      if (answers[currentQuestion] === null) return;
       if (currentQuestion < questions.length - 1) {
         currentQuestion += 1;
         renderQuestion();
       } else {
-        showResult();
+        const score = answers.reduce((sum, selected, idx) => sum + (selected === questions[idx].answer ? 1 : 0), 0);
+        scoreElement.textContent = String(score);
+        finalScore.textContent = `You scored ${score} out of ${questions.length}.`;
+        quizArea.classList.add('hidden');
+        resultArea.classList.remove('hidden');
       }
     };
 
-    moduleSelect.onchange = async () => {
-      selectedModuleId = Number(moduleSelect.value);
-      await loadQuestions(true);
-    };
+    document.getElementById('restartBtn').onclick = loadQuestions;
 
-    questionCount.onchange = async () => {
-      if (selectedModuleId) {
-        await loadQuestions(true);
-      }
-    };
+    const infoBtn = document.getElementById('infoBtn');
+    const infoModal = document.getElementById('infoModal');
+    const closeInfoBtn = document.getElementById('closeInfoBtn');
+    infoBtn.onclick = () => infoModal.classList.add('open');
+    closeInfoBtn.onclick = () => infoModal.classList.remove('open');
+    infoModal.onclick = (e) => { if (e.target === infoModal) infoModal.classList.remove('open'); };
 
-    regenBtn.onclick = async () => {
-      if (selectedModuleId) {
-        await loadQuestions(true);
-      }
-    };
-
-    function showResult() {
-      score = answers.reduce((acc, selected, idx) => {
-        return acc + (selected === questions[idx].answer ? 1 : 0);
-      }, 0);
-      scoreElement.textContent = score;
-      quizArea.classList.add("hidden");
-      resultArea.classList.remove("hidden");
-      finalScore.textContent = `You scored ${score} out of ${questions.length}.`;
-    }
-
-    function restartQuiz() {
-      currentQuestion = 0;
-      score = 0;
-      answers = new Array(questions.length).fill(null);
-      scoreElement.textContent = score;
-      quizArea.classList.remove("hidden");
-      resultArea.classList.add("hidden");
-      renderQuestion();
-    }
-
-    window.restartQuiz = restartQuiz;
-
-    infoBtn.addEventListener("click", () => {
-      infoModal.classList.add("open");
-      infoModal.setAttribute("aria-hidden", "false");
-    });
-
-    function closeInfoModal() {
-      infoModal.classList.remove("open");
-      infoModal.setAttribute("aria-hidden", "true");
-    }
-
-    closeInfoBtn.addEventListener("click", closeInfoModal);
-    infoModal.addEventListener("click", (event) => {
-      if (event.target === infoModal) {
-        closeInfoModal();
-      }
-    });
-
-    window.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && infoModal.classList.contains("open")) {
-        closeInfoModal();
-      }
-    });
-
-    loadModules();
+    loadQuestions();
   </script>
 </body>
 </html>
