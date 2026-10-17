@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Instructor Dashboard - AI Exams</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, sans-serif; padding-bottom: 60px; }
+    .card { background-color: #1e293b; border: 1px solid #334155; color: #f8fafc; border-radius: 12px; }
+    .form-control, .form-select { background-color: #0f172a; border-color: #334155; color: #fff; }
+    .form-control:focus, .form-select:focus { background-color: #0f172a; border-color: #38bdf8; color: #fff; box-shadow: none; }
+    .btn-primary { background-color: #2563eb; border: none; font-weight: 600; }
+    .btn-primary:hover { background-color: #1d4ed8; }
+    .session-badge { font-family: monospace; font-size: 2rem; letter-spacing: 4px; color: #38bdf8; background: #0f172a; padding: 8px 16px; border-radius: 8px; border: 1px dashed #38bdf8; display: inline-block; }
+    .stat-box { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px; text-align: center; }
+    .stat-val { font-size: 1.5rem; font-weight: 700; color: #38bdf8; }
+  </style>
+</head>
+<body>
+  <div class="container py-4">
+    <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary">
+      <div>
+        <h2 class="fw-bold mb-1">Instructor Dashboard</h2>
+        <p class="text-secondary small mb-0">Configure session parameters and generate a session key for learners.</p>
+      </div>
+      <a href="index.html" class="btn btn-outline-secondary btn-sm">Learner Portal &rarr;</a>
+    </div>
+
+    <div class="row g-4">
+      <!-- Left: Configuration -->
+      <div class="col-lg-7">
+        <div class="card p-4 mb-4">
+          <h5 class="fw-bold mb-3">1. Select Course</h5>
+          <select id="courseSelect" class="form-select mb-3" onchange="renderModules()">
+            <option value="AI-3026">AI-3026 (AI Agents)</option>
+            <option value="AB-100">AB-100 (Agentic AI Business Solutions Architect)</option>
+            <option value="AI-103">AI-103 (Azure AI Apps and Agents Developer)</option>
+            <option value="GH-900">GH-900 (GitHub Foundations)</option>
+            <option value="MS-4018">MS-4018 (Microsoft 365 Copilot)</option>
+          </select>
+
+          <h5 class="fw-bold mb-2">2. Modules</h5>
+          <div class="mb-3 d-flex gap-2">
+            <button class="btn btn-sm btn-outline-light" onclick="toggleAllModules(true)">Select All</button>
+            <button class="btn btn-sm btn-outline-secondary" onclick="toggleAllModules(false)">Deselect All</button>
+          </div>
+          <div id="moduleList" class="ps-1"></div>
+        </div>
+
+        <div class="card p-4">
+          <h5 class="fw-bold mb-3">3. Session Settings</h5>
+          <div class="row g-3">
+            <div class="col-md-4">
+              <label class="form-label small text-secondary">Difficulty</label>
+              <select id="difficulty" class="form-select">
+                <option value="Hard">Hard (Exam level)</option>
+                <option value="Easy">Easy (Warm-up)</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small text-secondary">Question Count</label>
+              <select id="questionCount" class="form-select">
+                <option value="10">10 Questions</option>
+                <option value="5">5 Questions</option>
+                <option value="15">15 Questions</option>
+                <option value="20">20 Questions</option>
+              </select>
+            </div>
+            <div class="col-md-4">
+              <label class="form-label small text-secondary">Total Quiz Time</label>
+              <select id="duration" class="form-select">
+                <option value="auto">Auto (90s / question)</option>
+                <option value="5">5 minutes</option>
+                <option value="10">10 minutes</option>
+                <option value="15">15 minutes</option>
+                <option value="20">20 minutes</option>
+                <option value="30">30 minutes</option>
+              </select>
+            </div>
+          </div>
+          <button class="btn btn-primary w-100 mt-4 py-2" onclick="startSession()">Start Session</button>
+        </div>
+      </div>
+
+      <!-- Right: Active Session Telemetry -->
+      <div class="col-lg-5">
+        <div class="card p-4 text-center">
+          <h5 class="fw-bold mb-3 text-secondary">Session Key (Share with Learners)</h5>
+          <div class="my-3">
+            <span id="sessionKeyDisplay" class="session-badge">--- ---</span>
+          </div>
+          <p id="sessionStatusText" class="small text-secondary mb-4">No active session. Select modules and click "Start Session".</p>
+
+          <div class="row g-2 mb-4">
+            <div class="col-4">
+              <div class="stat-box">
+                <div id="statOnline" class="stat-val">0</div>
+                <div class="small text-secondary">Online</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="stat-box">
+                <div id="statCompleted" class="stat-val">0</div>
+                <div class="small text-secondary">Completed</div>
+              </div>
+            </div>
+            <div class="col-4">
+              <div class="stat-box">
+                <div id="statAvg" class="stat-val">0%</div>
+                <div class="small text-secondary">Avg Score</div>
+              </div>
+            </div>
+          </div>
+
+          <button id="btnEndSession" class="btn btn-danger w-100 py-2" onclick="endSession()" disabled>End Session</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const courseModules = {
+      "AI-3026": [
+        "Develop AI agents with Microsoft Foundry and Visual Studio Code",
+        "Integrate custom tools into your agent",
+        "Integrate MCP Tools with Azure AI Agents",
+        "Build knowledge-enhanced AI agents with Foundry IQ",
+        "Integrate your agent with Microsoft 365",
+        "Build agent-driven workflows using Microsoft Foundry",
+        "Develop an AI agent with Microsoft Agent Framework",
+        "Orchestrate a multi-agent solution using the Microsoft Agent Framework",
+        "Discover Azure AI Agents with A2A"
+      ],
+      "AB-100": ["Business Scenarios & Solution Architecture", "Governance & Security", "Agent Lifecycle"],
+      "AI-103": ["Azure AI Services", "Agent SDKs & Protocols", "Vector Search & Retrieval"],
+      "GH-900": ["GitHub Basics & Workflow", "Repositories & Collaboration", "GitHub Actions CI/CD"],
+      "MS-4018": ["Copilot Architecture", "Extensibility & Plugins", "Enterprise Security & Graph"]
+    };
+
+    function renderModules() {
+      const selected = document.getElementById("courseSelect").value;
+      const list = document.getElementById("moduleList");
+      list.innerHTML = "";
+      (courseModules[selected] || []).forEach((mod, idx) => {
+        list.innerHTML += `
+          <div class="form-check mb-2">
+            <input class="form-check-input module-check" type="checkbox" value="${mod}" id="mod_${idx}" checked>
+            <label class="form-check-label small" for="mod_${idx}">${mod}</label>
+          </div>`;
+      });
+    }
+
+    function toggleAllModules(select) {
+      document.querySelectorAll(".module-check").forEach(cb => cb.checked = select);
+    }
+
+    function generateKey() {
+      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+      let p1 = "", p2 = "";
+      for (let i = 0; i < 3; i++) p1 += chars.charAt(Math.floor(Math.random() * chars.length));
+      for (let i = 0; i < 3; i++) p2 += chars.charAt(Math.floor(Math.random() * chars.length));
+      return `${p1}-${p2}`;
+    }
+
+    function startSession() {
+      const course = document.getElementById("courseSelect").value;
+      const difficulty = document.getElementById("difficulty").value;
+      const count = document.getElementById("questionCount").value;
+      const duration = document.getElementById("duration").value;
+      const selectedMods = Array.from(document.querySelectorAll(".module-check:checked")).map(cb => cb.value);
+
+      if (selectedMods.length === 0) {
+        alert("Please select at least one module.");
+        return;
+      }
+
+      const key = generateKey();
+      const sessionData = {
+        key: key,
+        course: course,
+        modules: selectedMods,
+        difficulty: difficulty,
+        count: parseInt(count),
+        duration: duration === "auto" ? count * 1.5 : parseInt(duration),
+        isActive: true,
+        startedAt: Date.now()
+      };
+
+      localStorage.setItem("active_session", JSON.stringify(sessionData));
+      document.getElementById("sessionKeyDisplay").innerText = key;
+      document.getElementById("sessionStatusText").innerText = `Session active for ${course} (${selectedMods.length} modules)`;
+      document.getElementById("btnEndSession").disabled = false;
+    }
+
+    function endSession() {
+      const active = localStorage.getItem("active_session");
+      if (active) {
+        const parsed = JSON.parse(active);
+        parsed.isActive = false;
+        localStorage.setItem("active_session", JSON.stringify(parsed));
+      }
+      document.getElementById("sessionKeyDisplay").innerText = "--- ---";
+      document.getElementById("sessionStatusText").innerText = "Session ended.";
+      document.getElementById("btnEndSession").disabled = true;
+    }
+
+    renderModules();
+  </script>
+</body>
+</html>
