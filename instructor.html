@@ -3,121 +3,125 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Instructor Dashboard - AI Exams</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <title>Instructor Dashboard</title>
   <style>
-    body { background-color: #0f172a; color: #f8fafc; font-family: system-ui, sans-serif; padding-bottom: 60px; }
-    .card { background-color: #1e293b; border: 1px solid #334155; color: #f8fafc; border-radius: 12px; }
-    .form-control, .form-select { background-color: #0f172a; border-color: #334155; color: #fff; }
-    .form-control:focus, .form-select:focus { background-color: #0f172a; border-color: #38bdf8; color: #fff; box-shadow: none; }
-    .btn-primary { background-color: #2563eb; border: none; font-weight: 600; }
-    .btn-primary:hover { background-color: #1d4ed8; }
-    .session-badge { font-family: monospace; font-size: 2rem; letter-spacing: 4px; color: #38bdf8; background: #0f172a; padding: 8px 16px; border-radius: 8px; border: 1px dashed #38bdf8; display: inline-block; }
-    .stat-box { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 12px; text-align: center; }
-    .stat-val { font-size: 1.5rem; font-weight: 700; color: #38bdf8; }
+    :root {
+      --bg: #f3f7fb;
+      --card: #ffffff;
+      --text: #0f172a;
+      --muted: #64748b;
+      --line: #dbe3ee;
+      --primary: #2563eb;
+      --primary-2: #1d4ed8;
+      --danger: #b91c1c;
+      --soft: #eef4ff;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; font-family: Segoe UI, Arial, sans-serif; background: var(--bg); color: var(--text); }
+    .wrap { max-width: 1100px; margin: 24px auto 40px; padding: 0 16px; }
+    .card { background: var(--card); border: 1px solid var(--line); border-radius: 16px; padding: 18px; margin-bottom: 14px; box-shadow: 0 8px 24px rgba(15, 23, 42, 0.04); }
+    .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
+    h1 { margin: 0; font-size: 1.8rem; }
+    h3 { margin: 0 0 10px; }
+    .muted { color: var(--muted); }
+    .controls { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 14px; }
+    .controls > div { min-width: 0; }
+    .modules { max-height: 240px; overflow: auto; border: 1px solid var(--line); border-radius: 12px; padding: 12px; background: #fff; }
+    .form-check { display: flex; align-items: baseline; gap: 8px; margin: 8px 0; line-height: 1.35; }
+    .form-check input { flex-shrink: 0; accent-color: var(--primary); }
+    .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+    button, select, .btn-secondary { border-radius: 10px; padding: 10px 12px; font-size: 0.95rem; }
+    button { border: none; background: var(--primary); color: #fff; cursor: pointer; font-weight: 700; }
+    button:hover { background: var(--primary-2); }
+    button:disabled { opacity: 0.55; cursor: not-allowed; }
+    .btn-secondary { background: #475569; color: #fff; text-decoration: none; font-weight: 700; }
+    .btn-danger { background: var(--danger); }
+    .btn-outline { background: #e2e8f0; color: var(--text); border: 1px solid #cbd5e1; }
+    .btn-outline:hover { background: #cbd5e1; }
+    select { border: 1px solid #cbd5e1; background: #fff; color: var(--text); min-width: 120px; max-width: 100%; }
+    button:focus-visible, select:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid var(--primary); outline-offset: 3px; }
+    .field-label { display: block; margin-top: 12px; }
+    .session-key { font-size: 2rem; font-weight: 800; letter-spacing: 3px; color: var(--primary); overflow-wrap: anywhere; }
+    .status { font-size: 0.95rem; margin-top: 8px; }
+    .pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: var(--soft); color: var(--primary-2); font-weight: 700; font-size: 0.85rem; }
+    @media (max-width: 840px) { .controls { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
-  <div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary">
-      <div>
-        <h2 class="fw-bold mb-1">Instructor Dashboard</h2>
-        <p class="text-secondary small mb-0">Configure session parameters and generate a session key for learners.</p>
+  <main class="wrap">
+    <div class="card">
+      <div class="top">
+        <div>
+          <h1>Instructor Dashboard</h1>
+          <div class="muted">Self-paced mixed-module quiz. Each learner gets the full question set and works through it independently, with their own overall timer and the ability to review previous questions.</div>
+        </div>
+        <a href="index.html" class="btn-secondary">Learner Portal</a>
       </div>
-      <a href="index.html" class="btn btn-outline-secondary btn-sm">Learner Portal &rarr;</a>
     </div>
-
-    <div class="row g-4">
-      <!-- Left: Configuration -->
-      <div class="col-lg-7">
-        <div class="card p-4 mb-4">
-          <h5 class="fw-bold mb-3">1. Select Course</h5>
-          <select id="courseSelect" class="form-select mb-3" onchange="renderModules()">
-            <option value="AI-3026">AI-3026 (AI Agents)</option>
-            <option value="AB-100">AB-100 (Agentic AI Business Solutions Architect)</option>
-            <option value="AI-103">AI-103 (Azure AI Apps and Agents Developer)</option>
-            <option value="GH-900">GH-900 (GitHub Foundations)</option>
-            <option value="MS-4018">MS-4018 (Microsoft 365 Copilot)</option>
+    <div class="card">
+      <div style="margin-bottom: 14px;">
+        <label for="courseSelect" style="display: block; font-weight: 600; margin-bottom: 6px;">Course</label>
+        <select id="courseSelect" style="min-width: min(280px, 100%);" onchange="renderModules()">
+          <option value="AI-3026">AI-3026 (AI Agents)</option>
+          <option value="AB-100">AB-100 (Agentic AI Business Solutions Architect)</option>
+          <option value="AI-103">AI-103 (Azure AI Apps and Agents Developer)</option>
+          <option value="GH-900">GH-900 (GitHub Foundations)</option>
+          <option value="MS-4018">MS-4018 (Microsoft 365 Copilot)</option>
+        </select>
+        <div class="muted" style="margin-top: 6px; font-size: 0.9rem;">Pick the course. The module list below updates to match. Session keys and question selection work the same for every course.</div>
+      </div>
+      <div class="controls">
+        <div>
+          <div class="top" style="margin-bottom: 10px;">
+            <h3>Modules</h3>
+            <div class="btn-row" style="margin-top: 0;">
+              <button type="button" class="btn-outline" onclick="toggleAllModules(true)">Select All</button>
+              <button type="button" class="btn-outline" onclick="toggleAllModules(false)">Deselect All</button>
+            </div>
+          </div>
+          <div id="moduleList" class="modules"></div>
+        </div>
+        <div>
+          <h3>Session Settings</h3>
+          <label for="difficulty" style="display: block;">Difficulty</label>
+          <select id="difficulty">
+            <option value="Hard">Hard (exam level)</option>
+            <option value="Easy">Easy (warm-up / beginner)</option>
           </select>
-
-          <h5 class="fw-bold mb-2">2. Modules</h5>
-          <div class="mb-3 d-flex gap-2">
-            <button class="btn btn-sm btn-outline-light" onclick="toggleAllModules(true)">Select All</button>
-            <button class="btn btn-sm btn-outline-secondary" onclick="toggleAllModules(false)">Deselect All</button>
+          <label for="questionCount" class="field-label">Question count</label>
+          <select id="questionCount">
+            <option value="10">10</option>
+            <option value="5">5</option>
+            <option value="15">15</option>
+            <option value="20">20</option>
+          </select>
+          <label for="duration" class="field-label">Total quiz time</label>
+          <select id="duration">
+            <option value="auto">Auto (90s &times; questions)</option>
+            <option value="5">5 minutes</option>
+            <option value="10">10 minutes</option>
+            <option value="15">15 minutes</option>
+            <option value="20">20 minutes</option>
+            <option value="30">30 minutes</option>
+          </select>
+          <div class="pill" style="margin-top: 10px;">One overall countdown for the whole quiz. Learners pace themselves and can review; when time runs out, unanswered questions are auto-submitted.</div>
+          <div class="btn-row">
+            <button type="button" onclick="startSession()">Start Session</button>
           </div>
-          <div id="moduleList" class="ps-1"></div>
-        </div>
-
-        <div class="card p-4">
-          <h5 class="fw-bold mb-3">3. Session Settings</h5>
-          <div class="row g-3">
-            <div class="col-md-4">
-              <label class="form-label small text-secondary">Difficulty</label>
-              <select id="difficulty" class="form-select">
-                <option value="Hard">Hard (Exam level)</option>
-                <option value="Easy">Easy (Warm-up)</option>
-              </select>
-            </div>
-            <div class="col-md-4">
-              <label class="form-label small text-secondary">Question Count</label>
-              <select id="questionCount" class="form-select">
-                <option value="10">10 Questions</option>
-                <option value="5">5 Questions</option>
-                <option value="15">15 Questions</option>
-                <option value="20">20 Questions</option>
-              </select>
-            </div>
-            <div class="col-md-4">
-              <label class="form-label small text-secondary">Total Quiz Time</label>
-              <select id="duration" class="form-select">
-                <option value="auto">Auto (90s / question)</option>
-                <option value="5">5 minutes</option>
-                <option value="10">10 minutes</option>
-                <option value="15">15 minutes</option>
-                <option value="20">20 minutes</option>
-                <option value="30">30 minutes</option>
-              </select>
-            </div>
-          </div>
-          <button class="btn btn-primary w-100 mt-4 py-2" onclick="startSession()">Start Session</button>
-        </div>
-      </div>
-
-      <!-- Right: Active Session Telemetry -->
-      <div class="col-lg-5">
-        <div class="card p-4 text-center">
-          <h5 class="fw-bold mb-3 text-secondary">Session Key (Share with Learners)</h5>
-          <div class="my-3">
-            <span id="sessionKeyDisplay" class="session-badge">--- ---</span>
-          </div>
-          <p id="sessionStatusText" class="small text-secondary mb-4">No active session. Select modules and click "Start Session".</p>
-
-          <div class="row g-2 mb-4">
-            <div class="col-4">
-              <div class="stat-box">
-                <div id="statOnline" class="stat-val">0</div>
-                <div class="small text-secondary">Online</div>
-              </div>
-            </div>
-            <div class="col-4">
-              <div class="stat-box">
-                <div id="statCompleted" class="stat-val">0</div>
-                <div class="small text-secondary">Completed</div>
-              </div>
-            </div>
-            <div class="col-4">
-              <div class="stat-box">
-                <div id="statAvg" class="stat-val">0%</div>
-                <div class="small text-secondary">Avg Score</div>
-              </div>
-            </div>
-          </div>
-
-          <button id="btnEndSession" class="btn btn-danger w-100 py-2" onclick="endSession()" disabled>End Session</button>
         </div>
       </div>
     </div>
-  </div>
+    <div class="card">
+      <div>Session key (share with learners)</div>
+      <div id="sessionKeyDisplay" class="session-key" aria-live="polite">--- ---</div>
+      <div id="sessionStatusText" class="status muted" role="status">No active session. Select modules and click "Start Session".</div>
+      <div class="status">Learners online: <span id="statOnline">0</span></div>
+      <div class="status muted">Completed: <span id="statCompleted">0</span> | Avg score: <span id="statAvg">0%</span></div>
+      <div class="btn-row">
+        <button id="btnEndSession" class="btn-danger" type="button" onclick="endSession()" disabled>End Session</button>
+      </div>
+    </div>
+  </main>
 
   <script>
     const courseModules = {

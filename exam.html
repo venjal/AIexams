@@ -3,68 +3,87 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Exam Session</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <title>Live Session</title>
   <style>
-    body { background-color: #0b1120; color: #f8fafc; font-family: system-ui, -apple-system, sans-serif; min-height: 100vh; padding-bottom: 60px; }
-    .card { background-color: #1e293b; border: 1px solid #334155; color: #f8fafc; border-radius: 12px; }
-    .timer-badge { font-family: monospace; font-size: 1.3rem; font-weight: 700; color: #38bdf8; background: #0b1120; border: 1px solid #38bdf8; padding: 6px 14px; border-radius: 8px; }
-    
-    .option-card { background: #0f172a; border: 1px solid #334155; border-radius: 8px; padding: 14px 18px; margin-bottom: 12px; cursor: pointer; transition: all 0.15s ease-in-out; font-size: 1rem; }
-    .option-card:hover:not(.locked) { border-color: #38bdf8; background: #1e293b; }
-    
-    .option-card.correct { border-color: #22c55e !important; background-color: rgba(34, 197, 94, 0.2) !important; color: #86efac !important; font-weight: 600; }
-    .option-card.wrong { border-color: #ef4444 !important; background-color: rgba(239, 68, 68, 0.2) !important; color: #fca5a5 !important; }
-    .option-card.locked { cursor: default; }
-
-    .explanation-box { border-radius: 8px; padding: 16px; margin-top: 18px; font-size: 0.95rem; }
-    .btn-primary { background-color: #2563eb; border: none; font-weight: 600; }
-    .btn-primary:hover { background-color: #1d4ed8; }
-    
-    .q-dot { width: 34px; height: 34px; border-radius: 6px; border: 1px solid #334155; background: #0f172a; color: #94a3b8; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; font-size: 0.85rem; font-weight: 600; }
-    .q-dot.active { border-color: #38bdf8; color: #fff; box-shadow: 0 0 8px rgba(56, 189, 248, 0.4); }
-    .q-dot.dot-correct { background-color: #166534; border-color: #22c55e; color: #ffffff; }
-    .q-dot.dot-wrong { background-color: #991b1b; border-color: #ef4444; color: #ffffff; }
+    body { margin: 0; background: #f8fafc; color: #0f172a; font-family: Segoe UI, Arial, sans-serif; }
+    .wrap { max-width: 880px; margin: 20px auto; padding: 0 14px; }
+    .card { background: #fff; border: 1px solid #dbe3ee; border-radius: 12px; padding: 16px; }
+    .score-badge { position: fixed; top: 20px; right: 20px; background: #2563eb; color: #fff; padding: 10px 16px; border-radius: 20px; font-weight: 700; font-size: 0.95rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
+    .muted { color: #64748b; }
+    .key { font-weight: 700; color: #1d4ed8; }
+    .topline { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
+    .progress-text { font-weight: 700; color: #334155; }
+    .dots { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
+    .dot { width: 26px; height: 26px; border-radius: 50%; border: 1px solid #cbd5e1; padding: 0; background: #fff; color: #475569; font-size: 0.8rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+    .dot.current { outline: 2px solid #2563eb; outline-offset: 1px; }
+    .dot.correct { background: #dcfce7; border-color: #16a34a; color: #15803d; }
+    .dot.incorrect { background: #fee2e2; border-color: #dc2626; color: #b91c1c; }
+    .question { margin-top: 14px; font-size: 1.15rem; font-weight: 700; }
+    .options { margin-top: 10px; display: grid; gap: 8px; }
+    .option { border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; background: #fff; color: inherit; font: inherit; text-align: left; cursor: pointer; }
+    .option:hover:not(:disabled) { background: #f1f5f9; }
+    .option:disabled { cursor: default; opacity: 1; }
+    .option.correct { border-color: #16a34a; background: #dcfce7; }
+    .option.selected-ans { border-color: #2563eb; background: #eff6ff; font-weight: 700; color: #1d4ed8; }
+    .option.chosen-wrong { border-color: #dc2626; background: #fee2e2; color: #b91c1c; font-weight: 700; }
+    .timer-wrap { margin-top: 10px; background: #e2e8f0; border-radius: 999px; overflow: hidden; height: 12px; }
+    .timer-bar { height: 12px; width: 100%; background: #22c55e; transition: width 1s linear, background-color 0.8s linear; }
+    .explanation { margin-top: 12px; border: 1px solid #dbe3ee; border-radius: 10px; padding: 10px; background: #f8fafc; }
+    .feedback { margin-top: 10px; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 0.95rem; }
+    .feedback.correct { background: #dcfce7; border: 1px solid #16a34a; color: #15803d; }
+    .feedback.incorrect { background: #fee2e2; border: 1px solid #dc2626; color: #b91c1c; }
+    .nav-row { margin-top: 16px; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+    .btn { display: inline-block; border: none; border-radius: 8px; background: #2563eb; color: #fff; padding: 10px 16px; font: inherit; font-weight: 700; cursor: pointer; text-decoration: none; }
+    .btn.secondary { background: #475569; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    button:focus-visible, a:focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; }
+    .summary { margin-top: 14px; padding: 14px; border: 1px solid #bbf7d0; background: #f0fdf4; border-radius: 10px; }
+    .summary h2 { margin: 0 0 6px; }
+    .review-question { margin-top: 16px; border-top: 1px solid #dbe3ee; padding-top: 12px; }
+    .review-question h3 { font-size: 1rem; }
+    .review-question .option { cursor: default; }
+    @media (max-width: 1160px) { .score-badge { position: static; width: fit-content; margin: 14px 14px 0 auto; } }
   </style>
 </head>
 <body>
-  <div class="container py-4">
-    <div class="d-flex justify-content-between align-items-center mb-4 pb-3 border-bottom border-secondary">
-      <div>
-        <h4 id="courseTitle" class="fw-bold mb-1">AI Exam</h4>
-        <div class="small text-secondary">Learner: <span id="displayName" class="text-light fw-semibold"></span> | Key: <span id="displayKey" class="text-light fw-semibold"></span></div>
+  <div id="scoreBadge" class="score-badge" aria-live="polite">Score: 0 / 0</div>
+  <main class="wrap">
+    <div class="card">
+      <div class="topline">
+        <div>Session key: <span id="displayKey" class="key"></span></div>
+        <div id="questionNumber" class="progress-text">Question 1 of 5</div>
       </div>
-      <div id="timerDisplay" class="timer-badge">00:00</div>
-    </div>
-
-    <div id="quizContainer">
-      <div id="navDots" class="d-flex flex-wrap gap-2 mb-4"></div>
-
-      <div class="card p-4 mb-4 shadow">
-        <div class="d-flex justify-content-between text-secondary small mb-2">
-          <span id="questionCategory">Module</span>
-          <span id="questionNumber">Question 1 of 5</span>
+      <div class="muted" style="margin-top: 6px;"><span id="courseTitle">AI Exam</span> &middot; Learner: <span id="displayName"></span></div>
+      <div id="navDots" class="dots" aria-label="Question navigation"></div>
+      <div id="quizContainer">
+        <div id="timerSection">
+          <div class="muted" style="margin-top: 10px;">Time left: <span id="timerDisplay">00:00</span></div>
+          <div class="timer-wrap"><div id="timerBar" class="timer-bar"></div></div>
         </div>
-        <h5 id="questionPrompt" class="fw-bold mb-4">Loading question...</h5>
-        <div id="optionsList"></div>
-        <div id="feedbackBox" style="display: none;"></div>
+        <div id="questionCategory" class="muted" style="margin-top: 12px;">Module</div>
+        <div id="questionPrompt" class="question">Loading question...</div>
+        <div id="optionsList" class="options"></div>
+        <div id="feedbackBox" role="status" style="display: none;"></div>
+        <div id="explanation" class="explanation" style="display: none;"></div>
+        <div class="nav-row">
+          <button id="btnPrev" class="btn secondary" type="button" onclick="changeQuestion(-1)" disabled>&larr; Previous</button>
+          <button id="btnNext" class="btn" type="button" onclick="changeQuestion(1)">Next &rarr;</button>
+          <button id="btnSubmit" class="btn" type="button" onclick="submitExam()" style="display: none;">Submit Exam</button>
+          <button id="btnSummary" class="btn" type="button" onclick="showResults()" style="display: none;">View results</button>
+        </div>
       </div>
-
-      <div class="d-flex justify-content-between align-items-center">
-        <button id="btnPrev" class="btn btn-secondary px-4" onclick="changeQuestion(-1)" disabled>Previous</button>
-        <button id="btnNext" class="btn btn-primary px-4" onclick="changeQuestion(1)">Next</button>
-        <button id="btnSubmit" class="btn btn-success px-4" onclick="submitExam()" style="display: none;">Submit Exam</button>
+      <div id="resultContainer" class="summary" style="display: none;">
+        <h2>Quiz complete!</h2>
+        <div>You scored <strong id="finalScoreDisplay">-- / --</strong> (<span id="percentageDisplay">--%</span>).</div>
+        <div class="muted" style="margin-top: 6px;">Review each question and its explanation below, or use Previous/Next to review your answers.</div>
+        <div class="nav-row">
+          <button class="btn secondary" type="button" onclick="reviewQuestions()">&larr; Review questions</button>
+          <a href="index.html" class="btn">Return to learner page</a>
+        </div>
+        <div id="answerBreakdown"></div>
       </div>
     </div>
-
-    <div id="resultContainer" class="card p-5 text-center mx-auto mt-4 shadow-lg" style="max-width: 520px; display: none;">
-      <h3 class="fw-bold mb-2">Exam Completed!</h3>
-      <p class="text-secondary mb-4">Here is your final assessment summary:</p>
-      <div class="display-3 fw-bold text-info mb-2" id="finalScoreDisplay">-- / --</div>
-      <div class="fs-4 fw-semibold mb-4" id="percentageDisplay">--%</div>
-      <a href="index.html" class="btn btn-primary w-100 py-2">Return to Lobby</a>
-    </div>
-  </div>
+  </main>
 
   <script>
     const sampleQuestions = [
@@ -110,6 +129,8 @@
     let questions = sampleQuestions;
     let timeRemaining = 600;
     let timerTimer = null;
+    let totalSeconds = timeRemaining;
+    let finished = false;
 
     window.onload = function() {
       const learnerName = localStorage.getItem("learner_name") || "Learner";
@@ -129,6 +150,7 @@
         }
       }
 
+      totalSeconds = timeRemaining;
       renderDots();
       renderCurrentQuestion();
       startCountdown();
@@ -152,20 +174,34 @@
       const s = timeRemaining % 60;
       document.getElementById("timerDisplay").innerText = 
         `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
+      const percentage = totalSeconds > 0 ? Math.max(0, Math.min(100, timeRemaining / totalSeconds * 100)) : 0;
+      const bar = document.getElementById("timerBar");
+      bar.style.width = `${percentage}%`;
+      bar.style.backgroundColor = percentage <= 15 ? "#ef4444" : percentage <= 40 ? "#f59e0b" : "#22c55e";
     }
 
     function renderDots() {
       const dotBox = document.getElementById("navDots");
       dotBox.innerHTML = "";
       questions.forEach((_, i) => {
-        const dot = document.createElement("div");
+        const dot = document.createElement("button");
+        dot.type = "button";
+        dot.setAttribute("aria-label", `Question ${i + 1}`);
+        if (i === currentIdx) dot.setAttribute("aria-current", "step");
         let statusClass = "";
         if (userAnswers[i] !== undefined) {
-          statusClass = (userAnswers[i] === questions[i].correct) ? "dot-correct" : "dot-wrong";
+          statusClass = (userAnswers[i] === questions[i].correct) ? "correct" : "incorrect";
+        } else if (finished) {
+          statusClass = "incorrect";
         }
-        dot.className = `q-dot ${i === currentIdx ? 'active' : ''} ${statusClass}`;
+        dot.className = `dot ${i === currentIdx ? 'current' : ''} ${statusClass}`;
         dot.innerText = i + 1;
-        dot.onclick = () => { currentIdx = i; renderCurrentQuestion(); };
+        dot.onclick = () => {
+          currentIdx = i;
+          document.getElementById("resultContainer").style.display = "none";
+          document.getElementById("quizContainer").style.display = "block";
+          renderCurrentQuestion();
+        };
         dotBox.appendChild(dot);
       });
     }
@@ -178,75 +214,133 @@
 
       const optList = document.getElementById("optionsList");
       const feedbackBox = document.getElementById("feedbackBox");
+      const explanation = document.getElementById("explanation");
       optList.innerHTML = "";
       feedbackBox.style.display = "none";
+      explanation.style.display = "none";
 
       const answered = userAnswers[currentIdx] !== undefined;
 
       q.options.forEach((opt, optIndex) => {
-        const div = document.createElement("div");
-        div.className = "option-card";
+        const div = document.createElement("button");
+        div.type = "button";
+        div.className = "option";
+        div.textContent = opt;
 
-        if (answered) {
-          div.classList.add("locked");
+        if (answered || finished) {
+          div.disabled = true;
           if (optIndex === q.correct) {
             div.classList.add("correct");
-            div.innerHTML = `✓ ${String.fromCharCode(65 + optIndex)}. ${opt} <span class="badge bg-success float-end">Correct Answer</span>`;
+            if (userAnswers[currentIdx] === optIndex) div.classList.add("selected-ans");
           } else if (userAnswers[currentIdx] === optIndex) {
-            div.classList.add("wrong");
-            div.innerHTML = `✗ ${String.fromCharCode(65 + optIndex)}. ${opt} <span class="badge bg-danger float-end">Your Choice</span>`;
-          } else {
-            div.innerText = `${String.fromCharCode(65 + optIndex)}. ${opt}`;
-            div.style.opacity = "0.45";
+            div.classList.add("chosen-wrong");
           }
         } else {
-          div.innerText = `${String.fromCharCode(65 + optIndex)}. ${opt}`;
           div.onclick = () => selectOption(optIndex);
         }
 
         optList.appendChild(div);
       });
 
-      if (answered && q.explanation) {
+      if (answered || finished) {
         const isRight = userAnswers[currentIdx] === q.correct;
         feedbackBox.style.display = "block";
-        feedbackBox.className = `explanation-box ${isRight ? 'border border-success bg-dark text-success' : 'border border-danger bg-dark text-danger'}`;
-        feedbackBox.innerHTML = `<strong>${isRight ? 'Correct!' : 'Incorrect.'}</strong> ${q.explanation}`;
+        feedbackBox.className = `feedback ${isRight ? "correct" : "incorrect"}`;
+        feedbackBox.textContent = !answered ? "No answer recorded" : isRight ? "\u2713 Correct!" : "\u2717 Incorrect";
+        if (q.explanation) {
+          explanation.textContent = q.explanation;
+          explanation.style.display = "block";
+        }
       }
 
       document.getElementById("btnPrev").disabled = currentIdx === 0;
+      document.getElementById("btnSummary").style.display = finished ? "inline-block" : "none";
       if (currentIdx === questions.length - 1) {
         document.getElementById("btnNext").style.display = "none";
-        document.getElementById("btnSubmit").style.display = "inline-block";
+        document.getElementById("btnSubmit").style.display = finished ? "none" : "inline-block";
       } else {
         document.getElementById("btnNext").style.display = "inline-block";
         document.getElementById("btnSubmit").style.display = "none";
       }
       renderDots();
+      updateScoreBadge();
     }
 
     function selectOption(optIndex) {
-      if (userAnswers[currentIdx] !== undefined) return;
+      if (finished || userAnswers[currentIdx] !== undefined) return;
       userAnswers[currentIdx] = optIndex;
       renderCurrentQuestion();
     }
 
     function changeQuestion(delta) {
+      if (currentIdx + delta < 0 || currentIdx + delta >= questions.length) return;
       currentIdx += delta;
       renderCurrentQuestion();
     }
 
+    function updateScoreBadge() {
+      const answered = Object.keys(userAnswers).length;
+      const score = questions.filter((q, i) => userAnswers[i] === q.correct).length;
+      document.getElementById("scoreBadge").textContent = `Score: ${score} / ${finished ? questions.length : answered}`;
+    }
+
+    function showResults() {
+      document.getElementById("quizContainer").style.display = "none";
+      document.getElementById("resultContainer").style.display = "block";
+    }
+
+    function reviewQuestions() {
+      currentIdx = 0;
+      document.getElementById("resultContainer").style.display = "none";
+      document.getElementById("quizContainer").style.display = "block";
+      renderCurrentQuestion();
+    }
+
     function submitExam() {
+      if (finished) return;
+      finished = true;
       clearInterval(timerTimer);
       let score = 0;
       questions.forEach((q, i) => {
         if (userAnswers[i] === q.correct) score++;
       });
 
-      document.getElementById("quizContainer").style.display = "none";
-      document.getElementById("resultContainer").style.display = "block";
+      document.getElementById("timerSection").style.display = "none";
       document.getElementById("finalScoreDisplay").innerText = `${score} / ${questions.length}`;
       document.getElementById("percentageDisplay").innerText = `${Math.round((score / questions.length) * 100)}%`;
+      const breakdown = document.getElementById("answerBreakdown");
+      breakdown.replaceChildren();
+      questions.forEach((q, i) => {
+        const section = document.createElement("section");
+        section.className = "review-question";
+        const heading = document.createElement("h3");
+        heading.textContent = `${i + 1}. ${q.text}`;
+        section.appendChild(heading);
+        const state = document.createElement("div");
+        const correct = userAnswers[i] === q.correct;
+        state.className = `feedback ${correct ? "correct" : "incorrect"}`;
+        state.textContent = userAnswers[i] === undefined ? "No answer recorded" : correct ? "\u2713 Correct!" : "\u2717 Incorrect";
+        section.appendChild(state);
+        const options = document.createElement("div");
+        options.className = "options";
+        q.options.forEach((text, index) => {
+          const option = document.createElement("div");
+          option.className = "option";
+          if (index === q.correct) option.classList.add("correct");
+          if (index === userAnswers[i]) option.classList.add(correct ? "selected-ans" : "chosen-wrong");
+          option.textContent = `${text}${index === q.correct ? " (Correct answer)" : ""}${index === userAnswers[i] ? " (Your answer)" : ""}`;
+          options.appendChild(option);
+        });
+        section.appendChild(options);
+        const explanation = document.createElement("div");
+        explanation.className = "explanation";
+        explanation.textContent = q.explanation || "";
+        section.appendChild(explanation);
+        breakdown.appendChild(section);
+      });
+      renderDots();
+      updateScoreBadge();
+      showResults();
     }
   </script>
 </body>
