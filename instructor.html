@@ -12,106 +12,20 @@
       document.documentElement.setAttribute("data-theme", theme);
     })();
   </script>
-  <style>
-    :root {
-      color-scheme: light;
-      --cp-bg: #f7f4ef;
-      --cp-bg-elevated: #fcfbf8;
-      --cp-surface: #ffffff;
-      --cp-surface-soft: #f5f5f5;
-      --cp-border: #dedede;
-      --cp-border-strong: #919191;
-      --cp-text: #242424;
-      --cp-text-muted: #5c5c5c;
-      --cp-text-soft: #6f6f6f;
-      --cp-accent: #b11f4b;
-      --cp-accent-hover: #9a1a41;
-      --cp-accent-soft: rgba(177, 31, 75, 0.08);
-      --cp-accent-fg: #ffffff;
-      --cp-success: #16a34a;
-      --cp-danger: #dc2626;
-      --cp-warning: #f59e0b;
-      --cp-link: #0078d4;
-      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.12);
-      --cp-overlay: rgba(255, 255, 255, 0.8);
-      --cp-panel: rgba(255, 255, 255, 0.86);
-      --cp-panel-strong: rgba(255, 255, 255, 0.96);
-      --cp-sheen: rgba(255, 255, 255, 0.55);
-      --cp-highlight: rgba(177, 31, 75, 0.12);
-    }
-    html[data-theme="dark"] {
-      color-scheme: dark;
-      --cp-bg: #3d3b3a;
-      --cp-bg-elevated: #343231;
-      --cp-surface: #292929;
-      --cp-surface-soft: #2e2e2e;
-      --cp-border: #474747;
-      --cp-border-strong: #5f5f5f;
-      --cp-text: #dedede;
-      --cp-text-muted: #919191;
-      --cp-text-soft: #b0b0b0;
-      --cp-accent: #fd8ea1;
-      --cp-accent-hover: #fb7b91;
-      --cp-accent-soft: rgba(253, 142, 161, 0.14);
-      --cp-accent-fg: #1a1a1a;
-      --cp-success: #4ade80;
-      --cp-danger: #f87171;
-      --cp-warning: #fbbf24;
-      --cp-link: #4da6ff;
-      --cp-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
-      --cp-overlay: rgba(41, 41, 41, 0.88);
-      --cp-panel: rgba(41, 41, 41, 0.72);
-      --cp-panel-strong: rgba(41, 41, 41, 0.96);
-      --cp-sheen: rgba(255, 255, 255, 0.04);
-      --cp-highlight: rgba(253, 142, 161, 0.12);
-    }
-    * { box-sizing: border-box; }
-    [hidden] { display: none !important; }
-    body { margin: 0; font-family: "Segoe UI", Aptos, Calibri, -apple-system, BlinkMacSystemFont, sans-serif; background: var(--cp-bg); color: var(--cp-text); }
-    .wrap { max-width: 1100px; margin: 24px auto 40px; padding: 0 16px; }
-    .card { background: var(--cp-surface); border: 1px solid var(--cp-border); border-radius: 16px; padding: 18px; margin-bottom: 14px; }
-    .top { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; }
-    h1 { margin: 0; font-size: 1.8rem; }
-    h3 { margin: 0 0 10px; }
-    .muted { color: var(--cp-text-muted); }
-    .controls { display: grid; grid-template-columns: 1.2fr 0.8fr; gap: 14px; }
-    .controls > div { min-width: 0; }
-    .modules { max-height: 240px; overflow: auto; border: 1px solid var(--cp-border); border-radius: 12px; padding: 12px; background: var(--cp-surface); }
-    .form-check { display: flex; align-items: baseline; gap: 8px; margin: 8px 0; line-height: 1.35; }
-    .form-check input { flex-shrink: 0; accent-color: var(--cp-accent); }
-    .btn-row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
-    button, select, .btn-secondary { border-radius: 10px; padding: 10px 12px; font-size: 0.95rem; }
-    button { border: none; background: var(--cp-accent); color: var(--cp-accent-fg); cursor: pointer; font-weight: 700; }
-    button:hover { background: var(--cp-accent-hover); }
-    button:disabled { opacity: 0.55; cursor: not-allowed; }
-    .btn-secondary { background: var(--cp-surface-soft); color: var(--cp-text); text-decoration: none; font-weight: 700; }
-    .btn-danger { background: var(--cp-danger); }
-    .btn-outline { background: var(--cp-surface-soft); color: var(--cp-text); border: 1px solid var(--cp-border); }
-    .btn-outline:hover { background: var(--cp-border); }
-    select { border: 1px solid var(--cp-border); background: var(--cp-surface); color: var(--cp-text); min-width: 120px; max-width: 100%; }
-    button:focus-visible, select:focus-visible, a:focus-visible, input:focus-visible { outline: 2px solid var(--cp-accent); outline-offset: 3px; }
-    .field-label { display: block; margin-top: 12px; }
-    .session-key { font-size: 2rem; font-weight: 800; letter-spacing: 3px; color: var(--cp-accent); overflow-wrap: anywhere; }
-    .status { font-size: 0.95rem; margin-top: 8px; }
-    .pill { display: inline-flex; align-items: center; gap: 6px; padding: 6px 10px; border-radius: 999px; background: var(--cp-accent-soft); color: var(--cp-accent); font-weight: 700; font-size: 0.85rem; }
-    .login { max-width: 420px; margin: 12vh auto; }
-    .login label { display: block; margin: 20px 0 8px; font-weight: 600; }
-    .login input { width: 100%; padding: 12px; border: 1px solid var(--cp-border); border-radius: 10px; background: var(--cp-surface); color: var(--cp-text); font: inherit; }
-    .error { color: var(--cp-danger); font-weight: 600; }
-    .login a { color: var(--cp-link); }
-    @media (max-width: 840px) { .controls { grid-template-columns: 1fr; } }
-  </style>
+  <link rel="stylesheet" href="quiz-theme.css">
+  <script src="data/existing-courses.js" defer></script>
+  <script src="data/copilot-courses.js" defer></script>
+  <script src="quiz-core.js" defer></script>
+  <script src="instructor.js" defer></script>
 </head>
 <body>
   <main id="loginPanel" class="wrap login">
     <div class="card">
       <h1>Instructor Login</h1>
       <form id="loginForm">
-        <label for="instructorPassword">Password</label>
+        <label class="field-label" for="instructorPassword">Password</label>
         <input id="instructorPassword" type="password" autocomplete="current-password" required autofocus>
-        <div class="btn-row">
-          <button id="loginButton" type="submit">Sign In</button>
-        </div>
+        <div class="btn-row"><button id="loginButton" type="submit">Sign In</button></div>
         <p id="loginError" class="error" role="alert" hidden></p>
       </form>
       <noscript><p class="error">Enable JavaScript to sign in and manage quiz sessions.</p></noscript>
@@ -119,205 +33,76 @@
     </div>
   </main>
   <main id="dashboard" class="wrap" hidden>
-    <div class="card">
+    <section class="card">
       <div class="top">
         <div>
           <h1>Instructor Dashboard</h1>
-          <div class="muted">Self-paced mixed-module quiz. Each learner gets the full question set and works through it independently, with their own overall timer and the ability to review previous questions.</div>
+          <p class="muted">Select a course, module(s), difficulty, and quiz settings.</p>
         </div>
         <div class="btn-row">
-          <a href="index.html" class="btn-secondary">Learner Portal</a>
-          <button type="button" onclick="location.reload()">Sign Out</button>
+          <a href="index.html" class="btn secondary">Learner Portal</a>
+          <button id="signOut" type="button">Sign Out</button>
         </div>
       </div>
-    </div>
-    <div class="card">
-      <div style="margin-bottom: 14px;">
-        <label for="courseSelect" style="display: block; font-weight: 600; margin-bottom: 6px;">Course</label>
-        <select id="courseSelect" style="min-width: min(280px, 100%);" onchange="renderModules()">
-          <option value="AI-3026">AI-3026 (AI Agents)</option>
-          <option value="AB-100">AB-100 (Agentic AI Business Solutions Architect)</option>
-          <option value="AI-103">AI-103 (Azure AI Apps and Agents Developer)</option>
-          <option value="GH-900">GH-900 (GitHub Foundations)</option>
-          <option value="MS-4018">MS-4018 (Microsoft 365 Copilot)</option>
-        </select>
-        <div class="muted" style="margin-top: 6px; font-size: 0.9rem;">Pick the course. The module list below updates to match. Session keys and question selection work the same for every course.</div>
-      </div>
+      <p class="notice">GitHub Pages only. Short session keys work in the same browser/profile.
+        They are not synchronized across devices. There is no live attendance or results collection.</p>
+    </section>
+    <section class="card">
+      <label class="field-label" for="courseSelect">Course</label>
+      <select id="courseSelect" aria-describedby="courseDescription"></select>
+      <p id="courseDescription" class="muted"></p>
+      <a id="courseSource" target="_blank" rel="noopener noreferrer">Microsoft Learn course / study guide</a>
       <div class="controls">
         <div>
-          <div class="top" style="margin-bottom: 10px;">
-            <h3>Modules</h3>
-            <div class="btn-row" style="margin-top: 0;">
-              <button type="button" class="btn-outline" onclick="toggleAllModules(true)">Select All</button>
-              <button type="button" class="btn-outline" onclick="toggleAllModules(false)">Deselect All</button>
+          <div class="top">
+            <h2>Modules</h2>
+            <div class="btn-row">
+              <button id="selectAll" type="button" class="btn-outline">Select All</button>
+              <button id="deselectAll" type="button" class="btn-outline">Deselect All</button>
             </div>
           </div>
           <div id="moduleList" class="modules"></div>
         </div>
         <div>
-          <h3>Session Settings</h3>
-          <label for="difficulty" style="display: block;">Difficulty</label>
+          <h2>Session Settings</h2>
+          <label class="field-label" for="difficulty">Difficulty</label>
           <select id="difficulty">
-            <option value="Hard">Hard (exam level)</option>
-            <option value="Easy">Easy (warm-up / beginner)</option>
+            <option value="Difficult">Difficult (scenario and application)</option>
+            <option value="Easy">Easy (foundational)</option>
           </select>
-          <label for="questionCount" class="field-label">Question count</label>
-          <select id="questionCount">
-            <option value="10">10</option>
-            <option value="5">5</option>
-            <option value="15">15</option>
-            <option value="20">20</option>
-          </select>
-          <label for="duration" class="field-label">Total quiz time</label>
+          <p id="difficultyNote" class="muted"></p>
+          <label class="field-label" for="questionCount">Question count</label>
+          <select id="questionCount" aria-describedby="questionAvailability"></select>
+          <p id="questionAvailability" class="muted" role="status"></p>
+          <label class="field-label" for="duration">Total quiz time</label>
           <select id="duration">
-            <option value="auto">Auto (90s &times; questions)</option>
+            <option value="auto">Auto (90 seconds per question)</option>
             <option value="5">5 minutes</option>
             <option value="10">10 minutes</option>
             <option value="15">15 minutes</option>
             <option value="20">20 minutes</option>
             <option value="30">30 minutes</option>
           </select>
-          <div class="pill" style="margin-top: 10px;">One overall countdown for the whole quiz. Learners pace themselves and can review; when time runs out, unanswered questions are auto-submitted.</div>
-          <div class="btn-row">
-            <button type="button" onclick="startSession()">Start Session</button>
-          </div>
+          <p class="pill">One overall countdown. Learners can review answers and explanations. Unanswered questions count as incorrect when time expires.</p>
+          <button id="startSession" type="button">Start Session</button>
         </div>
       </div>
-    </div>
-    <div class="card">
-      <div>Session key (share with learners)</div>
+      <p id="sessionError" class="error" role="alert" hidden></p>
+    </section>
+    <section class="card">
+      <h2>Session key</h2>
       <div id="sessionKeyDisplay" class="session-key" aria-live="polite">--- ---</div>
-      <div id="sessionStatusText" class="status muted" role="status">No active session. Select modules and click "Start Session".</div>
-      <div class="status">Learners online: <span id="statOnline">0</span></div>
-      <div class="status muted">Completed: <span id="statCompleted">0</span> | Avg score: <span id="statAvg">0%</span></div>
+      <div id="sessionStatusText" class="status muted" role="status">No active session. Select settings and start a session.</div>
       <div class="btn-row">
-        <button id="btnEndSession" class="btn-danger" type="button" onclick="endSession()" disabled>End Session</button>
+        <button id="copyKey" type="button" class="secondary" disabled>Copy Key</button>
+        <a id="openLearner" class="btn secondary" href="index.html" hidden>Open Learner Portal</a>
+        <button id="btnEndSession" class="btn-danger" type="button" disabled>End Session</button>
       </div>
-    </div>
+    </section>
+    <p class="muted">Original practice questions, not official Microsoft assessment or exam questions.
+      Microsoft Learn links are provided for study; the quiz does not call Microsoft or Azure services.
+      The static-site password prompt is a convenience gate, not secure server authentication.</p>
+    <p><a href="data/README.txt">Course data, sources, and static-site limitations</a></p>
   </main>
-
-  <script>
-    // A static-site access gate only: client-side checks cannot secure public HTML.
-    const instructorPasswordHash = "ca54e393427726de095401917ce2242075083ee70bf600587c7f14bf2ec65b2e";
-    document.getElementById("loginForm").addEventListener("submit", async (event) => {
-      event.preventDefault();
-      const password = document.getElementById("instructorPassword");
-      const error = document.getElementById("loginError");
-      const button = document.getElementById("loginButton");
-      error.hidden = true;
-      button.disabled = true;
-      try {
-        const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(password.value));
-        const hash = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
-        if (hash !== instructorPasswordHash) {
-          error.textContent = "Incorrect password.";
-          error.hidden = false;
-          password.select();
-          return;
-        }
-        renderModules();
-        password.value = "";
-        document.getElementById("loginPanel").hidden = true;
-        document.getElementById("dashboard").hidden = false;
-        document.title = "Instructor Dashboard";
-        document.getElementById("courseSelect").focus();
-      } catch (err) {
-        console.error("Instructor sign-in failed:", err);
-        error.textContent = "Unable to sign in. Please use an up-to-date browser over HTTPS and try again.";
-        error.hidden = false;
-      } finally {
-        button.disabled = false;
-      }
-    });
-    window.addEventListener("pageshow", (event) => {
-      if (event.persisted) location.reload();
-    });
-
-    const courseModules = {
-      "AI-3026": [
-        "Develop AI agents with Microsoft Foundry and Visual Studio Code",
-        "Integrate custom tools into your agent",
-        "Integrate MCP Tools with Azure AI Agents",
-        "Build knowledge-enhanced AI agents with Foundry IQ",
-        "Integrate your agent with Microsoft 365",
-        "Build agent-driven workflows using Microsoft Foundry",
-        "Develop an AI agent with Microsoft Agent Framework",
-        "Orchestrate a multi-agent solution using the Microsoft Agent Framework",
-        "Discover Azure AI Agents with A2A"
-      ],
-      "AB-100": ["Business Scenarios & Solution Architecture", "Governance & Security", "Agent Lifecycle"],
-      "AI-103": ["Azure AI Services", "Agent SDKs & Protocols", "Vector Search & Retrieval"],
-      "GH-900": ["GitHub Basics & Workflow", "Repositories & Collaboration", "GitHub Actions CI/CD"],
-      "MS-4018": ["Copilot Architecture", "Extensibility & Plugins", "Enterprise Security & Graph"]
-    };
-
-    function renderModules() {
-      const selected = document.getElementById("courseSelect").value;
-      const list = document.getElementById("moduleList");
-      list.innerHTML = "";
-      (courseModules[selected] || []).forEach((mod, idx) => {
-        list.innerHTML += `
-          <div class="form-check mb-2">
-            <input class="form-check-input module-check" type="checkbox" value="${mod}" id="mod_${idx}" checked>
-            <label class="form-check-label small" for="mod_${idx}">${mod}</label>
-          </div>`;
-      });
-    }
-
-    function toggleAllModules(select) {
-      document.querySelectorAll(".module-check").forEach(cb => cb.checked = select);
-    }
-
-    function generateKey() {
-      const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
-      let p1 = "", p2 = "";
-      for (let i = 0; i < 3; i++) p1 += chars.charAt(Math.floor(Math.random() * chars.length));
-      for (let i = 0; i < 3; i++) p2 += chars.charAt(Math.floor(Math.random() * chars.length));
-      return `${p1}-${p2}`;
-    }
-
-    function startSession() {
-      const course = document.getElementById("courseSelect").value;
-      const difficulty = document.getElementById("difficulty").value;
-      const count = document.getElementById("questionCount").value;
-      const duration = document.getElementById("duration").value;
-      const selectedMods = Array.from(document.querySelectorAll(".module-check:checked")).map(cb => cb.value);
-
-      if (selectedMods.length === 0) {
-        alert("Please select at least one module.");
-        return;
-      }
-
-      const key = generateKey();
-      const sessionData = {
-        key: key,
-        course: course,
-        modules: selectedMods,
-        difficulty: difficulty,
-        count: parseInt(count),
-        duration: duration === "auto" ? count * 1.5 : parseInt(duration),
-        isActive: true,
-        startedAt: Date.now()
-      };
-
-      localStorage.setItem("active_session", JSON.stringify(sessionData));
-      document.getElementById("sessionKeyDisplay").innerText = key;
-      document.getElementById("sessionStatusText").innerText = `Session active for ${course} (${selectedMods.length} modules)`;
-      document.getElementById("btnEndSession").disabled = false;
-    }
-
-    function endSession() {
-      const active = localStorage.getItem("active_session");
-      if (active) {
-        const parsed = JSON.parse(active);
-        parsed.isActive = false;
-        localStorage.setItem("active_session", JSON.stringify(parsed));
-      }
-      document.getElementById("sessionKeyDisplay").innerText = "--- ---";
-      document.getElementById("sessionStatusText").innerText = "Session ended.";
-      document.getElementById("btnEndSession").disabled = true;
-    }
-
-  </script>
 </body>
 </html>

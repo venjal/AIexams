@@ -3,92 +3,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>AI Quiz</title>
-  <style>
-    body {
-      margin: 0;
-      min-height: 100vh;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      font-family: Segoe UI, Arial, sans-serif;
-      background: linear-gradient(135deg, #edf4ff, #f7fbff);
-      color: #0f172a;
-    }
-    .card {
-      width: min(538px, 92vw);
-      background: #fff;
-      border: 1px solid #dbe5f1;
-      border-radius: 14px;
-      box-shadow: 0 10px 24px rgba(15, 23, 42, 0.1);
-      padding: 28px;
-      box-sizing: border-box;
-    }
-    h1 { margin: 0 0 18px; text-align: center; font-size: 1.9rem; }
-    label { display: block; font-weight: 600; margin-bottom: 8px; }
-    .row { display: flex; gap: 10px; }
-    input {
-      min-width: 0;
-      flex: 1;
-      border: 1px solid #cbd5e1;
-      border-radius: 10px;
-      padding: 11px 12px;
-      font-size: 1rem;
-    }
-    #learnerName { width: 100%; box-sizing: border-box; margin-bottom: 18px; }
-    #sessionKey { text-transform: uppercase; }
-    button {
-      border: none;
-      background: #2563eb;
-      color: #fff;
-      padding: 11px 16px;
-      border-radius: 10px;
-      font-weight: 700;
-      cursor: pointer;
-    }
-    button:hover { background: #1d4ed8; }
-    input:focus-visible, button:focus-visible, a:focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; }
-    .error { margin-top: 12px; color: #b91c1c; font-weight: 600; }
-    .footer { margin-top: 18px; text-align: center; font-size: 0.95rem; }
-    .footer a { color: #2563eb; text-decoration: none; }
-  </style>
+  <title>AI and Copilot Quiz</title>
+  <script>
+    (() => {
+      const param = new URLSearchParams(window.location.search).get("scoutTheme");
+      const theme =
+        param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+  <link rel="stylesheet" href="quiz-theme.css">
+  <script src="data/existing-courses.js" defer></script>
+  <script src="data/copilot-courses.js" defer></script>
+  <script src="quiz-core.js" defer></script>
+  <script src="learner.js" defer></script>
 </head>
 <body>
-  <main class="card">
-    <h1>AI Quiz</h1>
-    <form onsubmit="event.preventDefault(); startExam();">
-      <label for="learnerName">Your name</label>
-      <input type="text" id="learnerName" autocomplete="name" placeholder="e.g. Alex" required>
-      <label for="sessionKey">Enter session key</label>
-      <div class="row">
-        <input type="text" id="sessionKey" placeholder="ABC-123" maxlength="7" autocomplete="off" required>
-        <button id="btnStart" type="submit">Join</button>
-      </div>
-      <div id="errorMsg" class="error" role="alert" style="display: none;"></div>
-    </form>
-    <div class="footer">
-      <a href="instructor.html">Instructor Login</a>
-    </div>
+  <main class="wrap login">
+    <section class="card">
+      <h1>AI and Copilot Quiz</h1>
+      <p class="muted">Business and technical practice, powered entirely by GitHub Pages.</p>
+      <form id="joinForm">
+        <label class="field-label" for="learnerName">Your name</label>
+        <input type="text" id="learnerName" autocomplete="name" maxlength="100" placeholder="e.g. Alex" required>
+        <label class="field-label" for="sessionKey">Enter session key</label>
+        <div class="row">
+          <input type="text" id="sessionKey" placeholder="ABC-123" maxlength="7" autocomplete="off" autocapitalize="characters" required>
+          <button id="btnStart" type="submit">Join</button>
+        </div>
+        <p id="errorMsg" class="error" role="alert" hidden></p>
+      </form>
+      <p class="notice">Session keys work only in the browser/profile where the instructor created
+        the session. This static site does not synchronize keys or results between devices.</p>
+      <noscript><p class="error">Enable JavaScript to use the quiz.</p></noscript>
+      <div class="footer"><a href="instructor.html">Instructor Login</a></div>
+    </section>
   </main>
-
-  <script>
-    function startExam() {
-      const name = document.getElementById('learnerName').value.trim();
-      const key = document.getElementById('sessionKey').value.trim().toUpperCase();
-      const err = document.getElementById('errorMsg');
-
-      if (!name || !key) {
-        err.innerText = "Please fill in both name and session key.";
-        err.style.display = "block";
-        return;
-      }
-
-      err.style.display = "none";
-      // Save session info to localStorage and redirect to active exam
-      localStorage.setItem('learner_name', name);
-      localStorage.setItem('active_session_key', key);
-      window.location.href = 'exam.html';
-    }
-  </script>
 </body>
 </html>

@@ -3,345 +3,70 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Live Session</title>
-  <style>
-    body { margin: 0; background: #f8fafc; color: #0f172a; font-family: Segoe UI, Arial, sans-serif; }
-    .wrap { max-width: 880px; margin: 20px auto; padding: 0 14px; }
-    .card { background: #fff; border: 1px solid #dbe3ee; border-radius: 12px; padding: 16px; }
-    .score-badge { position: fixed; top: 20px; right: 20px; background: #2563eb; color: #fff; padding: 10px 16px; border-radius: 20px; font-weight: 700; font-size: 0.95rem; box-shadow: 0 2px 8px rgba(0,0,0,0.1); }
-    .muted { color: #64748b; }
-    .key { font-weight: 700; color: #1d4ed8; }
-    .topline { display: flex; justify-content: space-between; align-items: center; gap: 10px; flex-wrap: wrap; }
-    .progress-text { font-weight: 700; color: #334155; }
-    .dots { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 12px; }
-    .dot { width: 26px; height: 26px; border-radius: 50%; border: 1px solid #cbd5e1; padding: 0; background: #fff; color: #475569; font-size: 0.8rem; font-weight: 700; cursor: pointer; display: flex; align-items: center; justify-content: center; }
-    .dot.current { outline: 2px solid #2563eb; outline-offset: 1px; }
-    .dot.correct { background: #dcfce7; border-color: #16a34a; color: #15803d; }
-    .dot.incorrect { background: #fee2e2; border-color: #dc2626; color: #b91c1c; }
-    .question { margin-top: 14px; font-size: 1.15rem; font-weight: 700; }
-    .options { margin-top: 10px; display: grid; gap: 8px; }
-    .option { border: 1px solid #cbd5e1; border-radius: 10px; padding: 10px; background: #fff; color: inherit; font: inherit; text-align: left; cursor: pointer; }
-    .option:hover:not(:disabled) { background: #f1f5f9; }
-    .option:disabled { cursor: default; opacity: 1; }
-    .option.correct { border-color: #16a34a; background: #dcfce7; }
-    .option.selected-ans { border-color: #2563eb; background: #eff6ff; font-weight: 700; color: #1d4ed8; }
-    .option.chosen-wrong { border-color: #dc2626; background: #fee2e2; color: #b91c1c; font-weight: 700; }
-    .timer-wrap { margin-top: 10px; background: #e2e8f0; border-radius: 999px; overflow: hidden; height: 12px; }
-    .timer-bar { height: 12px; width: 100%; background: #22c55e; transition: width 1s linear, background-color 0.8s linear; }
-    .explanation { margin-top: 12px; border: 1px solid #dbe3ee; border-radius: 10px; padding: 10px; background: #f8fafc; }
-    .feedback { margin-top: 10px; padding: 10px; border-radius: 8px; font-weight: 700; font-size: 0.95rem; }
-    .feedback.correct { background: #dcfce7; border: 1px solid #16a34a; color: #15803d; }
-    .feedback.incorrect { background: #fee2e2; border: 1px solid #dc2626; color: #b91c1c; }
-    .nav-row { margin-top: 16px; display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
-    .btn { display: inline-block; border: none; border-radius: 8px; background: #2563eb; color: #fff; padding: 10px 16px; font: inherit; font-weight: 700; cursor: pointer; text-decoration: none; }
-    .btn.secondary { background: #475569; }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    button:focus-visible, a:focus-visible { outline: 2px solid #2563eb; outline-offset: 3px; }
-    .summary { margin-top: 14px; padding: 14px; border: 1px solid #bbf7d0; background: #f0fdf4; border-radius: 10px; }
-    .summary h2 { margin: 0 0 6px; }
-    .review-question { margin-top: 16px; border-top: 1px solid #dbe3ee; padding-top: 12px; }
-    .review-question h3 { font-size: 1rem; }
-    .review-question .option { cursor: default; }
-    @media (max-width: 1160px) { .score-badge { position: static; width: fit-content; margin: 14px 14px 0 auto; } }
-  </style>
+  <title>Course Quiz</title>
+  <script>
+    (() => {
+      const param = new URLSearchParams(window.location.search).get("scoutTheme");
+      const theme =
+        param || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      document.documentElement.setAttribute("data-theme", theme);
+    })();
+  </script>
+  <link rel="stylesheet" href="quiz-theme.css">
+  <link rel="stylesheet" href="exam.css">
+  <script src="data/existing-courses.js" defer></script>
+  <script src="data/copilot-courses.js" defer></script>
+  <script src="quiz-core.js" defer></script>
+  <script src="exam.js" defer></script>
 </head>
 <body>
-  <div id="scoreBadge" class="score-badge" aria-live="polite">Score: 0 / 0</div>
-  <main class="wrap">
-    <div class="card">
+  <main class="wrap exam-wrap">
+    <section id="fatalPanel" class="card" hidden>
+      <h1>Unable to open this quiz</h1>
+      <p id="fatalMessage" class="error" role="alert"></p>
+      <a href="index.html" class="btn">Return to learner page</a>
+    </section>
+    <section id="examPanel" class="card" hidden>
       <div class="topline">
-        <div>Session key: <span id="displayKey" class="key"></span></div>
-        <div id="questionNumber" class="progress-text">Question 1 of 5</div>
+        <div>Session key: <strong id="displayKey" class="key"></strong></div>
+        <div id="scoreBadge" class="pill" aria-live="polite">Score: 0 / 0</div>
       </div>
-      <div class="muted" style="margin-top: 6px;"><span id="courseTitle">AI Exam</span> &middot; Learner: <span id="displayName"></span></div>
+      <h1 id="courseTitle">Course Quiz</h1>
+      <p class="muted"><span id="difficultyDisplay"></span> &middot; Learner: <span id="displayName"></span></p>
+      <p class="muted">Practice mode: answers include immediate feedback and source-linked explanations.</p>
       <div id="navDots" class="dots" aria-label="Question navigation"></div>
       <div id="quizContainer">
         <div id="timerSection">
-          <div class="muted" style="margin-top: 10px;">Time left: <span id="timerDisplay">00:00</span></div>
+          <p class="muted">Time left: <span id="timerDisplay">00:00</span></p>
           <div class="timer-wrap"><div id="timerBar" class="timer-bar"></div></div>
         </div>
-        <div id="questionCategory" class="muted" style="margin-top: 12px;">Module</div>
-        <div id="questionPrompt" class="question">Loading question...</div>
+        <p id="questionCategory" class="muted"></p>
+        <p id="questionNumber" class="progress-text"></p>
+        <h2 id="questionPrompt" class="question"></h2>
         <div id="optionsList" class="options"></div>
-        <div id="feedbackBox" role="status" style="display: none;"></div>
-        <div id="explanation" class="explanation" style="display: none;"></div>
+        <div id="feedbackBox" role="status" hidden></div>
+        <div id="explanation" class="explanation" hidden></div>
+        <p><a id="questionSource" target="_blank" rel="noopener noreferrer" hidden>Study this module on Microsoft Learn</a></p>
         <div class="nav-row">
-          <button id="btnPrev" class="btn secondary" type="button" onclick="changeQuestion(-1)" disabled>&larr; Previous</button>
-          <button id="btnNext" class="btn" type="button" onclick="changeQuestion(1)">Next &rarr;</button>
-          <button id="btnSubmit" class="btn" type="button" onclick="submitExam()" style="display: none;">Submit Exam</button>
-          <button id="btnSummary" class="btn" type="button" onclick="showResults()" style="display: none;">View results</button>
+          <button id="btnPrev" class="secondary" type="button">Previous</button>
+          <button id="btnNext" type="button">Next</button>
+          <button id="btnSubmit" type="button" hidden>Submit Quiz</button>
+          <button id="btnSummary" class="secondary" type="button" hidden>View Results</button>
         </div>
       </div>
-      <div id="resultContainer" class="summary" style="display: none;">
+      <div id="resultContainer" class="summary" hidden>
         <h2>Quiz complete!</h2>
-        <div>You scored <strong id="finalScoreDisplay">-- / --</strong> (<span id="percentageDisplay">--%</span>).</div>
-        <div class="muted" style="margin-top: 6px;">Review each question and its explanation below, or use Previous/Next to review your answers.</div>
+        <p id="timeExpired" class="notice" hidden>Time expired. Unanswered questions count as incorrect.</p>
+        <p>You scored <strong id="finalScoreDisplay"></strong> (<span id="percentageDisplay"></span>).</p>
+        <p class="muted">These results are stored only in this browser tab. No instructor reporting service is connected.</p>
         <div class="nav-row">
-          <button class="btn secondary" type="button" onclick="reviewQuestions()">&larr; Review questions</button>
+          <button id="reviewQuestions" class="secondary" type="button">Review Questions</button>
           <a href="index.html" class="btn">Return to learner page</a>
         </div>
         <div id="answerBreakdown"></div>
       </div>
-    </div>
+    </section>
+    <noscript><section class="card error">Enable JavaScript to use the quiz.</section></noscript>
   </main>
-
-  <script>
-    const sampleQuestions = [
-      {
-        module: "Develop AI agents with Microsoft Foundry and Visual Studio Code",
-        text: "Which file in a Microsoft Foundry project contains the primary declarative metadata and configurations defining an agent's capabilities?",
-        options: ["foundry.json", "agent.yaml", "config.xml", "settings.env"],
-        correct: 1,
-        explanation: "agent.yaml is the core specification file used by Microsoft Foundry to declare tool bindings, model deployments, and system prompts."
-      },
-      {
-        module: "Integrate custom tools into your agent",
-        text: "When registering a custom OpenAPI tool schema with an Azure AI agent, what parameter defines the HTTP payload structure expected by the backend function?",
-        options: ["requestBody schema", "headerAuth mapping", "responseTarget type", "webhookListener path"],
-        correct: 0,
-        explanation: "The requestBody schema within the OpenAPI spec determines the JSON structure that the LLM formulates when issuing tool calls."
-      },
-      {
-        module: "Integrate MCP Tools with Azure AI Agents",
-        text: "What protocol role does an Azure AI Agent adopt when issuing dynamic tool execution requests to an MCP-compliant endpoint?",
-        options: ["MCP Host / Client", "MCP Proxy Server", "MCP Resource Broker", "MCP Router"],
-        correct: 0,
-        explanation: "Under the Model Context Protocol (MCP) standard, the agent acts as the MCP Client/Host connecting to MCP servers providing external tools."
-      },
-      {
-        module: "Build knowledge-enhanced AI agents with Foundry IQ",
-        text: "What search indexing mode provides optimal retrieval precision when grounding agents on enterprise domain documentation in Foundry IQ?",
-        options: ["Hybrid search (Dense vector + BM25 keyword)", "Pure full-text lexical search", "Exact keyword filter match", "Regular expression matching"],
-        correct: 0,
-        explanation: "Hybrid search merges vector similarity with BM25 inverted index scoring, providing the highest domain retrieval precision for agent grounding."
-      },
-      {
-        module: "Develop an AI agent with Microsoft Agent Framework",
-        text: "In the Microsoft Agent Framework, what component is responsible for orchestrating conversation turns and state transitions across multi-agent workflows?",
-        options: ["GroupChatOrchestrator", "PromptBroker", "TokenPipeline", "AgentTelemetryGateway"],
-        correct: 0,
-        explanation: "GroupChatOrchestrator manages conversation history propagation, speaker selection rules, and termination conditions in multi-agent collaboration."
-      }
-    ];
-
-    let currentIdx = 0;
-    let userAnswers = {};
-    let questions = sampleQuestions;
-    let timeRemaining = 600;
-    let timerTimer = null;
-    let totalSeconds = timeRemaining;
-    let finished = false;
-
-    window.onload = function() {
-      const learnerName = localStorage.getItem("learner_name") || "Learner";
-      const sessionKey = localStorage.getItem("active_session_key") || "---";
-
-      document.getElementById("displayName").innerText = learnerName;
-      document.getElementById("displayKey").innerText = sessionKey;
-
-      const rawSession = localStorage.getItem("active_session");
-      if (rawSession) {
-        try {
-          const session = JSON.parse(rawSession);
-          document.getElementById("courseTitle").innerText = session.course || "AI Exam";
-          timeRemaining = (session.duration || 10) * 60;
-        } catch (e) {
-          console.error("Session parse error", e);
-        }
-      }
-
-      totalSeconds = timeRemaining;
-      renderDots();
-      renderCurrentQuestion();
-      startCountdown();
-    };
-
-    function startCountdown() {
-      updateTimerUI();
-      timerTimer = setInterval(() => {
-        timeRemaining--;
-        updateTimerUI();
-        if (timeRemaining <= 0) {
-          clearInterval(timerTimer);
-          alert("Time is up! Auto-submitting exam.");
-          submitExam();
-        }
-      }, 1000);
-    }
-
-    function updateTimerUI() {
-      const m = Math.floor(timeRemaining / 60);
-      const s = timeRemaining % 60;
-      document.getElementById("timerDisplay").innerText = 
-        `${String(m).padStart(2, '0')}:${String(s).padStart(2, '0')}`;
-      const percentage = totalSeconds > 0 ? Math.max(0, Math.min(100, timeRemaining / totalSeconds * 100)) : 0;
-      const bar = document.getElementById("timerBar");
-      bar.style.width = `${percentage}%`;
-      bar.style.backgroundColor = percentage <= 15 ? "#ef4444" : percentage <= 40 ? "#f59e0b" : "#22c55e";
-    }
-
-    function renderDots() {
-      const dotBox = document.getElementById("navDots");
-      dotBox.innerHTML = "";
-      questions.forEach((_, i) => {
-        const dot = document.createElement("button");
-        dot.type = "button";
-        dot.setAttribute("aria-label", `Question ${i + 1}`);
-        if (i === currentIdx) dot.setAttribute("aria-current", "step");
-        let statusClass = "";
-        if (userAnswers[i] !== undefined) {
-          statusClass = (userAnswers[i] === questions[i].correct) ? "correct" : "incorrect";
-        } else if (finished) {
-          statusClass = "incorrect";
-        }
-        dot.className = `dot ${i === currentIdx ? 'current' : ''} ${statusClass}`;
-        dot.innerText = i + 1;
-        dot.onclick = () => {
-          currentIdx = i;
-          document.getElementById("resultContainer").style.display = "none";
-          document.getElementById("quizContainer").style.display = "block";
-          renderCurrentQuestion();
-        };
-        dotBox.appendChild(dot);
-      });
-    }
-
-    function renderCurrentQuestion() {
-      const q = questions[currentIdx];
-      document.getElementById("questionCategory").innerText = q.module;
-      document.getElementById("questionNumber").innerText = `Question ${currentIdx + 1} of ${questions.length}`;
-      document.getElementById("questionPrompt").innerText = q.text;
-
-      const optList = document.getElementById("optionsList");
-      const feedbackBox = document.getElementById("feedbackBox");
-      const explanation = document.getElementById("explanation");
-      optList.innerHTML = "";
-      feedbackBox.style.display = "none";
-      explanation.style.display = "none";
-
-      const answered = userAnswers[currentIdx] !== undefined;
-
-      q.options.forEach((opt, optIndex) => {
-        const div = document.createElement("button");
-        div.type = "button";
-        div.className = "option";
-        div.textContent = opt;
-
-        if (answered || finished) {
-          div.disabled = true;
-          if (optIndex === q.correct) {
-            div.classList.add("correct");
-            if (userAnswers[currentIdx] === optIndex) div.classList.add("selected-ans");
-          } else if (userAnswers[currentIdx] === optIndex) {
-            div.classList.add("chosen-wrong");
-          }
-        } else {
-          div.onclick = () => selectOption(optIndex);
-        }
-
-        optList.appendChild(div);
-      });
-
-      if (answered || finished) {
-        const isRight = userAnswers[currentIdx] === q.correct;
-        feedbackBox.style.display = "block";
-        feedbackBox.className = `feedback ${isRight ? "correct" : "incorrect"}`;
-        feedbackBox.textContent = !answered ? "No answer recorded" : isRight ? "\u2713 Correct!" : "\u2717 Incorrect";
-        if (q.explanation) {
-          explanation.textContent = q.explanation;
-          explanation.style.display = "block";
-        }
-      }
-
-      document.getElementById("btnPrev").disabled = currentIdx === 0;
-      document.getElementById("btnSummary").style.display = finished ? "inline-block" : "none";
-      if (currentIdx === questions.length - 1) {
-        document.getElementById("btnNext").style.display = "none";
-        document.getElementById("btnSubmit").style.display = finished ? "none" : "inline-block";
-      } else {
-        document.getElementById("btnNext").style.display = "inline-block";
-        document.getElementById("btnSubmit").style.display = "none";
-      }
-      renderDots();
-      updateScoreBadge();
-    }
-
-    function selectOption(optIndex) {
-      if (finished || userAnswers[currentIdx] !== undefined) return;
-      userAnswers[currentIdx] = optIndex;
-      renderCurrentQuestion();
-    }
-
-    function changeQuestion(delta) {
-      if (currentIdx + delta < 0 || currentIdx + delta >= questions.length) return;
-      currentIdx += delta;
-      renderCurrentQuestion();
-    }
-
-    function updateScoreBadge() {
-      const answered = Object.keys(userAnswers).length;
-      const score = questions.filter((q, i) => userAnswers[i] === q.correct).length;
-      document.getElementById("scoreBadge").textContent = `Score: ${score} / ${finished ? questions.length : answered}`;
-    }
-
-    function showResults() {
-      document.getElementById("quizContainer").style.display = "none";
-      document.getElementById("resultContainer").style.display = "block";
-    }
-
-    function reviewQuestions() {
-      currentIdx = 0;
-      document.getElementById("resultContainer").style.display = "none";
-      document.getElementById("quizContainer").style.display = "block";
-      renderCurrentQuestion();
-    }
-
-    function submitExam() {
-      if (finished) return;
-      finished = true;
-      clearInterval(timerTimer);
-      let score = 0;
-      questions.forEach((q, i) => {
-        if (userAnswers[i] === q.correct) score++;
-      });
-
-      document.getElementById("timerSection").style.display = "none";
-      document.getElementById("finalScoreDisplay").innerText = `${score} / ${questions.length}`;
-      document.getElementById("percentageDisplay").innerText = `${Math.round((score / questions.length) * 100)}%`;
-      const breakdown = document.getElementById("answerBreakdown");
-      breakdown.replaceChildren();
-      questions.forEach((q, i) => {
-        const section = document.createElement("section");
-        section.className = "review-question";
-        const heading = document.createElement("h3");
-        heading.textContent = `${i + 1}. ${q.text}`;
-        section.appendChild(heading);
-        const state = document.createElement("div");
-        const correct = userAnswers[i] === q.correct;
-        state.className = `feedback ${correct ? "correct" : "incorrect"}`;
-        state.textContent = userAnswers[i] === undefined ? "No answer recorded" : correct ? "\u2713 Correct!" : "\u2717 Incorrect";
-        section.appendChild(state);
-        const options = document.createElement("div");
-        options.className = "options";
-        q.options.forEach((text, index) => {
-          const option = document.createElement("div");
-          option.className = "option";
-          if (index === q.correct) option.classList.add("correct");
-          if (index === userAnswers[i]) option.classList.add(correct ? "selected-ans" : "chosen-wrong");
-          option.textContent = `${text}${index === q.correct ? " (Correct answer)" : ""}${index === userAnswers[i] ? " (Your answer)" : ""}`;
-          options.appendChild(option);
-        });
-        section.appendChild(options);
-        const explanation = document.createElement("div");
-        explanation.className = "explanation";
-        explanation.textContent = q.explanation || "";
-        section.appendChild(explanation);
-        breakdown.appendChild(section);
-      });
-      renderDots();
-      updateScoreBadge();
-      showResults();
-    }
-  </script>
 </body>
 </html>
