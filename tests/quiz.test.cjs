@@ -9,7 +9,7 @@ function setup() {
   const values = new Map();
   const errors = [];
   const context = vm.createContext({
-    crypto: webcrypto, Uint8Array,
+    crypto: webcrypto, Uint8Array, URL, URLSearchParams,
     console: { error: (...args) => errors.push(args) },
     localStorage: {
       getItem: key => values.has(key) ? values.get(key) : null,
@@ -25,6 +25,47 @@ function setup() {
 
 const businessCodes = ["MS-4018", "MS-4019", "MS-4021", "MS-4023", "AI-3025", "AB-730", "AB-731"];
 const expectedCounts = { "MS-4018": 45, "MS-4019": 20, "MS-4021": 20, "MS-4023": 20, "AI-3025": 20, "AB-730": 40, "AB-731": 40 };
+
+test("learner links transfer exact questions to a clean browser without private fields", () => {
+  const instructor = setup();
+  const learner = setup();
+  for (const course of Object.values(instructor.quiz.courses)) {
+    for (const difficulty of instructor.quiz.modes) {
+      const settings = config(course, difficulty);
+      if (!instructor.quiz.getPool(settings).length) continue;
+      const session = instructor.quiz.createSession(settings);
+      const url = new URL(instructor.quiz.createShareLink({
+        ...session, instructorPassword: "private", learner_name: "Private learner", answers: { secret: "answer" }
+      }, "https://venjal.github.io/AIexams/instructor.html?ignored=value"));
+      assert.equal(url.origin + url.pathname, "https://venjal.github.io/AIexams/index.html");
+      assert.equal(url.search, "");
+      assert.equal(url.href.includes("private"), false);
+      const imported = learner.quiz.readSharedSession(url.hash);
+      assert.equal(JSON.stringify(imported), JSON.stringify(session));
+      learner.quiz.saveSession(imported);
+      assert.equal(learner.quiz.readSession().key, session.key);
+      assert.deepEqual(Array.from(imported.questionIds), Array.from(session.questionIds));
+      assert.equal(learner.quiz.getSessionQuestions(imported).length, session.count);
+    }
+  }
+});
+
+test("shared links reject corrupt, incompatible and ended sessions without overwriting storage", () => {
+  const { quiz, values } = setup();
+  const session = quiz.createSession(config(quiz.getCourse("AI-3026"), "Easy"));
+  quiz.saveSession(session);
+  const before = values.get(quiz.sessionStorageKey);
+  assert.equal(quiz.readSharedSession(""), null);
+  assert.equal(quiz.readSharedSession("#other=value"), null);
+  for (const hash of ["#session=", "#session=%7B", "#session=null", "#session=a&session=b",
+    `#session=${"a".repeat(16001)}`,
+    ...[{ isActive: false }, { version: 99 }, { questionIds: ["missing"] }, { duration: 0 }]
+      .map(patch => `#${new URLSearchParams({ session: JSON.stringify({ ...session, ...patch }) })}`)]) {
+    assert.throws(() => quiz.readSharedSession(hash));
+    assert.equal(values.get(quiz.sessionStorageKey), before);
+  }
+  assert.throws(() => quiz.createShareLink({ ...session, isActive: false }, "https://example.com/instructor.html"), /ended/);
+});
 
 function config(course, difficulty = "Difficult", count = 5) {
   return { course: course.code, modules: Array.from(course.modules, m => m.id), difficulty, count, duration: 5 };

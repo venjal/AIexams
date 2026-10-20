@@ -49,6 +49,21 @@ the same tab preserves answers and does not restart the timer.
 
 Short keys work only in the browser/profile that created the session. There is
 no cross-device key lookup, live attendance, or central results collection.
+To share across devices, start a session and select Copy Learner Link. Send the
+entire generated URL, including its #session= fragment. Learners open that link,
+enter their name, and select Join; the session key is filled in automatically.
+If clipboard permission is unavailable, copy the full Learner link field manually.
+Do not send just exam.html or a short key to a new device.
+
+The link carries only session settings and selected question IDs, not instructor
+credentials, learner names, answers, or scores. The fragment is read locally by
+the browser, not sent in HTTP requests. It is not encrypted or signed: anyone
+with the link can use, forward, or change it. Imported data is validated against
+the published question bank. Changes to that bank can invalidate older links.
+Ending a session affects only the local browser; it cannot revoke shared links.
+Each learner's timer starts on first opening the exam and survives a tab refresh.
+This sharing feature is for practice, not secure or centrally controlled exams.
+
 The instructor password check is only a browser-side gate: public static HTML
 and data cannot provide secure authentication or conceal correct answers.
 

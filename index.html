@@ -23,6 +23,7 @@
     <section class="card">
       <h1>AI and Copilot Quiz</h1>
       <p class="muted">Business and technical practice, powered entirely by GitHub Pages.</p>
+      <p id="sharedSessionInfo" class="notice" role="status" hidden></p>
       <form id="joinForm">
         <label class="field-label" for="learnerName">Your name</label>
         <input type="text" id="learnerName" autocomplete="name" maxlength="100" placeholder="e.g. Alex" required>
@@ -33,8 +34,9 @@
         </div>
         <p id="errorMsg" class="error" role="alert" hidden></p>
       </form>
-      <p class="notice">Session keys work only in the browser/profile where the instructor created
-        the session. This static site does not synchronize keys or results between devices.</p>
+      <p class="notice">On another device, open the full learner link from your instructor.
+        It loads the quiz and fills in the session key. A short key or the exam page address alone
+        cannot load the quiz. Results stay on your device and are not sent to the instructor.</p>
       <noscript><p class="error">Enable JavaScript to use the quiz.</p></noscript>
       <div class="footer"><a href="instructor.html">Instructor Login</a></div>
     </section>

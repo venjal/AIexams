@@ -1,8 +1,28 @@
+let sharedSessionError = null;
+try {
+  const session = Quiz.readSharedSession(window.location.hash);
+  if (session) {
+    Quiz.saveSession(session);
+    document.getElementById("sessionKey").value = session.key;
+    const info = document.getElementById("sharedSessionInfo");
+    info.textContent = `${session.course} - ${session.difficulty} - ${session.count} questions - ${session.duration} minutes. Enter your name and select Join. No instructor password is needed.`;
+    info.hidden = false;
+  }
+} catch (error) {
+  console.error("Unable to load shared quiz:", error);
+  sharedSessionError = error;
+  const errorElement = document.getElementById("errorMsg");
+  errorElement.textContent = error.message;
+  errorElement.hidden = false;
+  document.getElementById("btnStart").disabled = true;
+}
+
 document.getElementById("joinForm").addEventListener("submit", event => {
   event.preventDefault();
   const errorElement = document.getElementById("errorMsg");
   errorElement.hidden = true;
   try {
+    if (sharedSessionError) throw sharedSessionError;
     const name = document.getElementById("learnerName").value.trim();
     if (!name || name.length > 100) throw new Error("Enter a name of 1 to 100 characters.");
     const key = document.getElementById("sessionKey").value;

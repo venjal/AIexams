@@ -104,7 +104,7 @@
   function readSession(requireActive = true) {
     const raw = localStorage.getItem(sessionStorageKey);
     if (!raw) {
-      throw new Error("No session is stored in this browser. The instructor must create one in this browser/profile; GitHub Pages does not synchronize short codes between devices.");
+      throw new Error("No session is stored in this browser. Open the full learner link from your instructor first; a short code or the exam page address alone cannot load a session on another device.");
     }
     let session;
     try {
@@ -119,6 +119,32 @@
   function saveSession(session) {
     validateSession(session, false);
     localStorage.setItem(sessionStorageKey, JSON.stringify(session));
+  }
+
+  function createShareLink(session, pageUrl) {
+    validateSession(session);
+    const { version, key, course, modules, difficulty, count, duration, questionIds, isActive, startedAt } = session;
+    const shared = { version, key, course, modules, difficulty, count, duration, questionIds, isActive, startedAt };
+    const url = new URL("index.html", pageUrl);
+    url.hash = new URLSearchParams({ session: JSON.stringify(shared) }).toString();
+    return url.href;
+  }
+
+  function readSharedSession(hash) {
+    const params = new URLSearchParams(hash.replace(/^#/, ""));
+    if (!params.has("session")) return null;
+    const raw = params.get("session");
+    if (!raw || raw.length > 16000 || params.getAll("session").length !== 1) {
+      throw new Error("The learner link is invalid or incomplete. Ask the instructor to copy the full learner link again.");
+    }
+    let session;
+    try {
+      session = JSON.parse(raw);
+    } catch (error) {
+      console.error("Unable to parse shared quiz session:", error);
+      throw new Error("The learner link cannot be read. Ask the instructor to copy the full learner link again.");
+    }
+    return validateSession(session);
   }
 
   function normalizeKey(key) {
@@ -138,6 +164,7 @@
 
   window.Quiz = Object.freeze({
     courses, modes, sessionStorageKey, getCourse, getPool, validateConfig,
-    shuffle, createSession, validateSession, readSession, saveSession, normalizeKey, getSessionQuestions
+    shuffle, createSession, validateSession, readSession, saveSession,
+    createShareLink, readSharedSession, normalizeKey, getSessionQuestions
   });
 })();

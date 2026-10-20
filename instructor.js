@@ -83,6 +83,8 @@
   function refreshSession() {
     const raw = localStorage.getItem(Quiz.sessionStorageKey);
     byId("copyKey").disabled = true;
+    byId("copyLearnerLink").disabled = true;
+    byId("learnerLink").value = "";
     byId("btnEndSession").disabled = true;
     byId("openLearner").hidden = true;
     if (!raw) {
@@ -94,11 +96,17 @@
       const session = Quiz.readSession(false);
       byId("sessionKeyDisplay").textContent = session.isActive ? session.key : "--- ---";
       byId("sessionStatusText").textContent = session.isActive
-        ? `Active: ${session.course} - ${session.difficulty} - ${session.modules.length} module(s) - ${session.count} questions - ${session.duration} minutes. Same browser/profile only.`
+        ? `Active: ${session.course} - ${session.difficulty} - ${session.modules.length} module(s) - ${session.count} questions - ${session.duration} minutes. Share the full learner link for other devices.`
         : "Session ended. Start a new session when ready.";
       byId("copyKey").disabled = !session.isActive;
       byId("btnEndSession").disabled = !session.isActive;
       byId("openLearner").hidden = !session.isActive;
+      if (session.isActive) {
+        const link = Quiz.createShareLink(session, window.location.href);
+        byId("learnerLink").value = link;
+        byId("copyLearnerLink").disabled = false;
+        byId("openLearner").href = link;
+      }
     } catch (error) {
       byId("sessionKeyDisplay").textContent = "--- ---";
       byId("sessionStatusText").textContent = "Saved session unavailable. Start a new session.";
@@ -188,6 +196,20 @@
     } catch (error) {
       console.error("Unable to copy session key:", error);
       report(new Error("Unable to copy automatically. Select and copy the displayed key manually."));
+    }
+  });
+  byId("learnerLink").addEventListener("click", event => event.target.select());
+  byId("copyLearnerLink").addEventListener("click", async () => {
+    try {
+      const link = Quiz.createShareLink(Quiz.readSession(), window.location.href);
+      await navigator.clipboard.writeText(link);
+      byId("sessionError").hidden = true;
+      byId("sessionStatusText").textContent = "Learner link copied. Send the entire link to your class; no instructor password is included.";
+    } catch (error) {
+      console.error("Unable to copy learner link:", error);
+      byId("learnerLink").focus();
+      byId("learnerLink").select();
+      report(new Error("Unable to copy automatically. Copy the full text from the Learner link field manually."));
     }
   });
   byId("signOut").addEventListener("click", () => location.reload());

@@ -44,8 +44,8 @@
           <button id="signOut" type="button">Sign Out</button>
         </div>
       </div>
-      <p class="notice">GitHub Pages only. Short session keys work in the same browser/profile.
-        They are not synchronized across devices. There is no live attendance or results collection.</p>
+      <p class="notice">For learners on other devices, share the full learner link below, not just
+        the session key or exam page address. There is no live attendance or results collection.</p>
     </section>
     <section class="card">
       <label class="field-label" for="courseSelect">Course</label>
@@ -93,11 +93,17 @@
       <h2>Session key</h2>
       <div id="sessionKeyDisplay" class="session-key" aria-live="polite">--- ---</div>
       <div id="sessionStatusText" class="status muted" role="status">No active session. Select settings and start a session.</div>
+      <label class="field-label" for="learnerLink">Learner link (share this with your class)</label>
+      <input id="learnerLink" type="text" readonly placeholder="Start a session to generate a learner link.">
       <div class="btn-row">
+        <button id="copyLearnerLink" type="button" disabled>Copy Learner Link</button>
         <button id="copyKey" type="button" class="secondary" disabled>Copy Key</button>
         <a id="openLearner" class="btn secondary" href="index.html" hidden>Open Learner Portal</a>
         <button id="btnEndSession" class="btn-danger" type="button" disabled>End Session</button>
       </div>
+      <p class="muted">Learners open the full link, enter their name, and join without your password.
+        Anyone with the link can use or forward it. End Session affects this browser only;
+        it cannot revoke links already shared. Each learner's timer starts when they open the exam.</p>
     </section>
     <p class="muted">Original practice questions, not official Microsoft assessment or exam questions.
       Microsoft Learn links are provided for study; the quiz does not call Microsoft or Azure services.
